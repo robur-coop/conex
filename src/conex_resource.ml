@@ -849,6 +849,13 @@ module Target = struct
     | [ "packages" ; _ ; "opam" ] | [ "packages" ; _ ; "files" ; _ ] -> true
     | _ -> false
 
+  let collect_opam_file t =
+    match t.filename with
+    | [ "packages" ; pname ; pversion ; "opam" ] ->
+      String.is_prefix ~prefix:(pname ^ ".") pversion
+    | [ "packages" ; _ ; "opam" ] -> true
+    | _ -> false
+
   let of_wire wire =
     let open Wire in
     let* target = pmap wire in

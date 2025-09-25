@@ -335,6 +335,10 @@ module Target : sig
       [packages/foo.version/opam], or [packages/foo.version/files/]. *)
   val valid_opam_path : t -> bool
 
+  (** [collect_opam_file t] is [true] if the filename sticks to opam repository
+      rules: [packages/foo/foo.version/opam] or [packages/foo.version/opam]. *)
+  val collect_opam_file : t -> bool
+
   (** [pp] is a pretty printer for a target. *)
   val pp : t fmt
 

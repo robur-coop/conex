@@ -154,7 +154,10 @@ let compute_checksum ?(prefix = [ "packages" ]) t opam f path =
       let filename = prefix @ [ name ] in
       let* target = compute_checksum_file t f filename in
       if not opam || opam && Target.valid_opam_path target then
-        Ok (target :: acc)
+        if not opam || opam && Target.collect_opam_file target then
+          Ok (target :: acc)
+        else
+          Ok acc
       else
         Error ("invalid path " ^ path_to_string filename)
   in
