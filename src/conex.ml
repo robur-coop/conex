@@ -1,11 +1,11 @@
 open Conex_utils
 open Conex_resource
 
-module IO = Conex_io
-
 let ( let* ) = Result.bind
 
 module Make (L : LOGS) (C : Conex_verify.S) = struct
+
+  module IO = Conex_io.Make(L)
 
   let valid_ids valid sigs =
     Digest_map.fold (fun dgst id acc ->
@@ -20,7 +20,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
 
   let verify_root ?(valid = fun _ _ -> false) ?quorum io filename =
     L.debug (fun m -> m "verifying root: %a" pp_name filename) ;
-    let* root, warn = err_to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = err_to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> L.warn (fun m -> m "%s" msg)) warn ;
     (* verify signatures *)
     let sigs, errs =
@@ -44,7 +44,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
     L.debug (fun m -> m "verifying timestamp") ;
     let* r = Conex_repository.timestamp repo in
     let read_and_verify id =
-      let* ts, warn = err_to_str IO.pp_r_err (IO.read_timestamp io id) in
+      let* ts, warn = err_to_str Conex_io.pp_r_err (IO.read_timestamp io id) in
       List.iter (fun w -> L.warn (fun m -> m "%s" w)) warn ;
       let sigs, es =
         Timestamp.(C.verify (wire_raw ts) ts.keys ts.signatures)
@@ -107,7 +107,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
     L.debug (fun m -> m "verifying timestamp") ;
     let* r = Conex_repository.snapshot repo in
     let read_and_verify id =
-      let* snap, warn = err_to_str IO.pp_r_err (IO.read_snapshot io id) in
+      let* snap, warn = err_to_str Conex_io.pp_r_err (IO.read_snapshot io id) in
       List.iter (fun w -> L.warn (fun m -> m "%s" w)) warn ;
       let sigs, es =
         Snapshot.(C.verify (wire_raw snap) snap.keys snap.signatures)
@@ -172,7 +172,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
     | None ->
       let root = Conex_repository.root repo in
       let* targets, warn =
-        err_to_str IO.pp_r_err (IO.read_targets io root opam id)
+        err_to_str Conex_io.pp_r_err (IO.read_targets io root opam id)
       in
       List.iter (fun msg -> L.warn (fun m -> m "%s" msg)) warn ;
       let* () = match snapshot with
@@ -315,9 +315,9 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
     compare_with_disk ignore_missing io repo'
 
   let verify_diffs root io newio diffs opam =
-    let* old_root, warn = err_to_str IO.pp_r_err (IO.read_root io root) in
+    let* old_root, warn = err_to_str Conex_io.pp_r_err (IO.read_root io root) in
     List.iter (fun msg -> L.warn (fun m -> m "%s" msg)) warn ;
-    let* new_root, warn' = err_to_str IO.pp_r_err (IO.read_root newio root) in
+    let* new_root, warn' = err_to_str Conex_io.pp_r_err (IO.read_root newio root) in
     List.iter (fun msg -> L.warn (fun m -> m "%s" msg)) warn' ;
     let* () =
       guard (path_equal old_root.Root.keydir new_root.Root.keydir)
@@ -336,8 +336,8 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
         let* () = acc in
         match IO.read_targets io old_root opam id, IO.read_targets newio new_root opam id with
         | Error _, Ok _ -> Ok ()
-        | Error _, Error e -> err_to_str IO.pp_r_err (Error e)
-        | Ok _, Error e -> err_to_str IO.pp_r_err (Error e) (* TODO allow delete? *)
+        | Error _, Error e -> err_to_str Conex_io.pp_r_err (Error e)
+        | Ok _, Error e -> err_to_str Conex_io.pp_r_err (Error e) (* TODO allow delete? *)
         | Ok (t, _), Ok (t', _) ->
           match
             Uint.compare t.Targets.epoch t'.Targets.epoch,

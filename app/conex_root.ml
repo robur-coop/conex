@@ -4,7 +4,7 @@ open Conex_resource
 open Conex_opts
 open Conex_mc
 
-module IO = Conex_io
+module IO = Conex_io.Make(Logs)
 
 let ( let* ) = Result.bind
 
@@ -37,7 +37,7 @@ let status _ repodir anchors filename =
     let* io = repo ~rw:false repodir in
     Result.fold
       ~error:(fun r ->
-          Logs.err (fun m -> m "%a" IO.pp_r_err r) ;
+          Logs.err (fun m -> m "%a" Conex_io.pp_r_err r) ;
           Error "failed loading")
       ~ok:(fun (root, warn) ->
           List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
@@ -73,7 +73,7 @@ let add_key _ dry repodir quorum id alg data filename =
     let* data = Option.to_result ~none:"Missing key data" data in
     let* data = Conex_unix_persistency.read_file data in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let root' =
       let key = (id, now, alg, data) in
@@ -94,7 +94,7 @@ let remove_key _ dry repodir quorum id filename =
   msg_to_cmdliner (
     let* id = Option.to_result ~none:"Missing identity" id in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let root' =
       let keys = M.remove id root.keys in
@@ -117,7 +117,7 @@ let set_role _ dry repodir role id alg h epoch filename =
     let* role = Option.to_result ~none:"Missing role" role in
     let* h = Option.to_result ~none:"Missing hash" h in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let root' =
       (match Root.(RM.find_opt role root.roles) with
@@ -137,7 +137,7 @@ let add_to_role _ dry repodir role id alg h epoch quorum filename =
     let* role = Option.to_result ~none:"Missing role" role in
     let* h = Option.to_result ~none:"Missing hash" h in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let* roles =
       match Root.(RM.find_opt role root.roles) with
@@ -163,7 +163,7 @@ let remove_from_role _ dry repodir role id quorum filename =
     let* id = Option.to_result ~none:"Missing identity" id in
     let* role = Option.to_result ~none:"Missing role" role in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let* roles =
       match Root.(RM.find_opt role root.roles) with
@@ -198,7 +198,7 @@ let sign _ dry repodir id no_incr filename =
   msg_to_cmdliner (
     let* priv, id' = init_priv_id id in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io filename) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let* root' =
       match no_incr, Uint.succ root.Root.counter with
