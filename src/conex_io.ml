@@ -144,7 +144,7 @@ let compute_checksum_file t f filename =
   let* data = t.read filename in
   Ok (target f filename data)
 
-let compute_checksum ?(prefix = [ "packages" ]) t opam f path =
+let compute_checksum ~prefix t opam f path =
   let rec compute_item prefix acc = function
     | Directory, name ->
       let path = prefix @ [ name ] in
