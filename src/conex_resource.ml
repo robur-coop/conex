@@ -844,9 +844,9 @@ module Target = struct
        [ foo ; foo.version ; files ; _ ]
        or [ foo.version ; opam ] [ foo.version ; files ; _ ] *)
     match t.filename with
-    | [ pname ; pversion ; "opam" ] | [ pname ; pversion ; "files" ; _ ] ->
+    | [ "packages" ; pname ; pversion ; "opam" ] | [ "packages" ; pname ; pversion ; "files" ; _ ] ->
       String.is_prefix ~prefix:(pname ^ ".") pversion
-    | [ _ ; "opam" ] | [ _ ; "files" ; _ ] -> true
+    | [ "packages" ; _ ; "opam" ] | [ "packages" ; _ ; "files" ; _ ] -> true
     | _ -> false
 
   let of_wire wire =

@@ -330,8 +330,9 @@ module Target : sig
   (** [equal a b] is [true] if targets [a] and [b] are identical. *)
   val equal : t -> t -> bool
 
-  (** [valid_path t] is [true] if the filename sticks to opam repository rules:
-     [foo/foo.version/opam] of [foo.version/opam]. *)
+  (** [valid_opam_path t] is [true] if the filename sticks to opam repository
+      rules: [packages/foo/foo.version/opam], [packages/foo/foo.version/files/],
+      [packages/foo.version/opam], or [packages/foo.version/files/]. *)
   val valid_opam_path : t -> bool
 
   (** [pp] is a pretty printer for a target. *)
