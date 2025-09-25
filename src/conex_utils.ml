@@ -252,6 +252,13 @@ let rec subpath ~parent b =
   | _, [] -> false
   | hd::tl, hd'::tl' -> if str_eq hd hd' then subpath ~parent:tl tl' else false
 
+let rec strip_prefix ~prefix p =
+  match prefix, p with
+  | [], xs -> Some xs
+  | hd::tl, hd'::tl' ->
+    if String.compare hd hd' = 0 then strip_prefix ~prefix:tl tl' else None
+  | _, [] -> None
+
 let pp_path fmt p =
   Format.pp_print_string fmt (path_to_string p)
 [@@coverage off]

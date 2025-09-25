@@ -211,7 +211,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
         end
       | _ -> true
     in
-    let* on_disk = IO.compute_checksum_tree io C.raw_digest in
+    let* on_disk = IO.compute_checksum_tree ~prefix:(Conex_repository.root repo).Root.datadir io C.raw_digest in
     let errs = Conex_repository.validate_targets repo on_disk in
     List.iter (fun r ->
         L.warn (fun m -> m "%a" Conex_repository.pp_res r))

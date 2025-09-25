@@ -115,9 +115,10 @@ module Make (L : LOGS) = struct
                   guard (id_equal targets.Targets.name id)
                     (`NameMismatch (`Targets, id, targets.Targets.name))
                 in
+                let datadir = root.Root.datadir in
                 let check_path t =
                   if opam then
-                    guard (Target.valid_opam_path t) (`InvalidPath (id, t.Target.filename))
+                    guard (Target.valid_opam_path datadir t) (`InvalidPath (id, t.Target.filename))
                   else
                     Ok ()
                 in
@@ -154,8 +155,8 @@ module Make (L : LOGS) = struct
       | File, name ->
         let filename = prefix @ [ name ] in
         let* target = compute_checksum_file t f filename in
-        if not opam || opam && Target.valid_opam_path target then
-          if not opam || opam && Target.collect_opam_file target then
+        if not opam || opam && Target.valid_opam_path prefix target then
+          if not opam || opam && Target.collect_opam_file prefix target then
             Ok (target :: acc)
           else begin
             L.info (fun m -> m "ignoring %s" (String.concat "/" filename));
@@ -175,7 +176,7 @@ module Make (L : LOGS) = struct
     | [ name ] -> go [] name
     | name::rest -> go (List.rev rest) name
 
-  let compute_checksum_tree ?(prefix = [ "packages" ]) t f =
+  let compute_checksum_tree ~prefix t f =
     let rec compute_item prefix acc = function
       | Directory, name ->
         let path = prefix @ [ name ] in

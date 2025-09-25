@@ -838,22 +838,22 @@ module Target = struct
       (pp_list Digest.pp) t.digest
   [@@coverage off]
 
-  let valid_opam_path t =
+  let valid_opam_path datadir t =
     (* this is an opam repository side condition:
        [ foo ; foo.version ; opam ]
        [ foo ; foo.version ; files ; _ ]
        or [ foo.version ; opam ] [ foo.version ; files ; _ ] *)
-    match t.filename with
-    | [ "packages" ; pname ; pversion ; "opam" ] | [ "packages" ; pname ; pversion ; "files" ; _ ] ->
+    match strip_prefix ~prefix:datadir t.filename with
+    | Some [ pname ; pversion ; "opam" ] | Some [ pname ; pversion ; "files" ; _ ] ->
       String.is_prefix ~prefix:(pname ^ ".") pversion
-    | [ "packages" ; _ ; "opam" ] | [ "packages" ; _ ; "files" ; _ ] -> true
+    | Some [ _ ; "opam" ] | Some [ _ ; "files" ; _ ] -> true
     | _ -> false
 
-  let collect_opam_file t =
-    match t.filename with
-    | [ "packages" ; pname ; pversion ; "opam" ] ->
+  let collect_opam_file datadir t =
+    match strip_prefix ~prefix:datadir t.filename with
+    | Some [ pname ; pversion ; "opam" ] ->
       String.is_prefix ~prefix:(pname ^ ".") pversion
-    | [ "packages" ; _ ; "opam" ] -> true
+    | Some [ _ ; "opam" ] -> true
     | _ -> false
 
   let of_wire wire =

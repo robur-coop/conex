@@ -63,6 +63,6 @@ module Make (L : LOGS) : sig
   val compute_checksum : prefix:path -> t -> bool -> (string -> Digest.t) -> path ->
     (Target.t list, string) result
 
-  val compute_checksum_tree : ?prefix:path -> t -> (string -> Digest.t) ->
+  val compute_checksum_tree : prefix:path -> t -> (string -> Digest.t) ->
     ((Digest.t * Uint.t) Tree.t, string) result
 end
