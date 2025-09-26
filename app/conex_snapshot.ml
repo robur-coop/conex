@@ -42,12 +42,12 @@ let create _ dry repodir root_file id =
     let* io, repo = io_repo ~rw:(not dry) repodir root_file in
     let* id = snap_id id repo in
     let* targets =
-      IO.compute_checksum ~prefix:(Conex_repository.keydir repo)
-        io false V.raw_digest []
+      IO.compute_checksum ~prefix:[]
+        io false V.raw_digest (Conex_repository.keydir repo)
     in
     let targets =
       let f =
-        match Conex_repository.timestamp repo with
+        match Conex_repository.snapshot repo with
         | Ok (Some (tid, _, _)) -> (fun tgt_id -> not (id_equal tid tgt_id))
         | _ -> (fun _ -> true)
       in
@@ -69,14 +69,14 @@ let create _ dry repodir root_file id =
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading snapshot: %s" w))
       warn;
-    let ts =
-      Timestamp.t ~counter:old_snap.Snapshot.counter
+    let snap =
+      Snapshot.t ~counter:old_snap.Snapshot.counter
         ~epoch:old_snap.Snapshot.epoch
         ~keys:old_snap.Snapshot.keys
         ~targets now id
     in
-    Logs.app (fun m -> m "timestamp file %a" Timestamp.pp ts) ;
-    IO.write_timestamp io ts)
+    Logs.app (fun m -> m "snapshot file %a" Snapshot.pp snap) ;
+    IO.write_snapshot io snap)
 
 let sign _ dry repodir id no_incr root_file =
   Mirage_crypto_rng_unix.use_default () ;

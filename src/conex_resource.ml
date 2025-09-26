@@ -970,7 +970,7 @@ module Timestamp = struct
     and counter = t.counter
     and epoch = t.epoch
     and name = t.name
-    and typ = `Targets
+    and typ = `Timestamp
     in
     let header = { Header.version ; created ; counter ; epoch ; name ; typ } in
     M.add "keys" (List (M.fold (fun _ key acc -> Key.wire_raw key :: acc) t.keys []))
@@ -1061,7 +1061,7 @@ module Snapshot = struct
     and counter = t.counter
     and epoch = t.epoch
     and name = t.name
-    and typ = `Targets
+    and typ = `Snapshot
     in
     let header = { Header.version ; created ; counter ; epoch ; name ; typ } in
     M.add "keys" (List (M.fold (fun _ key acc -> Key.wire_raw key :: acc) t.keys []))
