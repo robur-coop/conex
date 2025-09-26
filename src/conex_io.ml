@@ -146,7 +146,7 @@ module Make (L : LOGS) = struct
     let* data = t.read filename in
     Ok (target f filename data)
 
-  let compute_checksum ~prefix t opam f path =
+  let compute_checksum ~prefix:datadir t opam f path =
     let rec compute_item prefix acc = function
       | Directory, name ->
         let path = prefix @ [ name ] in
@@ -155,22 +155,22 @@ module Make (L : LOGS) = struct
       | File, name ->
         let filename = prefix @ [ name ] in
         let* target = compute_checksum_file t f filename in
-        if not opam || opam && Target.valid_opam_path prefix target then
-          if not opam || opam && Target.collect_opam_file prefix target then
+        if not opam || opam && Target.valid_opam_path datadir target then
+          if not opam || opam && Target.collect_opam_file datadir target then
             Ok (target :: acc)
           else begin
-            L.info (fun m -> m "ignoring %s" (String.concat "/" filename));
+            L.info (fun m -> m "ignoring %s" (path_to_string filename));
             Ok acc
           end
         else
           Error ("invalid path " ^ path_to_string filename)
     in
-    let go pre name = compute_item (prefix @ pre) [] (Directory, name) in
+    let go pre name = compute_item (datadir @ pre) [] (Directory, name) in
     match List.rev path with
     | [] ->
-      let* items = t.read_dir prefix in
+      let* items = t.read_dir datadir in
       foldM (fun acc e -> match e with
-          | Directory, _ -> compute_item prefix acc e
+          | Directory, _ -> compute_item datadir acc e
           | File, _ -> Ok acc)
         [] items
     | [ name ] -> go [] name
