@@ -48,8 +48,8 @@ let rec decode_s s =
   match s.OpamParserTypes.pelem with
   | OpamParserTypes.Ident data ->
     if String.is_prefix ~prefix:"0x" data then
-      match Uint.of_string (String.slice ~start:2 data) with
-      | None -> Error "cannot parse unsigned integer"
+      match Uint.of_string data with
+      | None -> Error ("cannot parse unsigned integer: " ^ data)
       | Some x -> Ok (Wire.Bigint x)
     else if data = "emptymap" then
       Ok (Wire.Map M.empty)
