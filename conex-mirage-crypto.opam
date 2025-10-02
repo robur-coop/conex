@@ -9,7 +9,7 @@ depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "2.7"}
   "alcotest" {with-test}
-  "bisect_ppx" {dev & >= "2.5.0"}
+#  "bisect_ppx" {dev & >= "2.5.0"} #until they support cmdliner >= 2
   "cmdliner" {>= "1.1.0"}
   "conex" {= version}
   "mirage-crypto-pk" {>= "1.0.0"}
