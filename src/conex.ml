@@ -104,7 +104,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
       Ok (Some ts)
 
   let verify_snapshot ?timestamp ?id io repo =
-    L.debug (fun m -> m "verifying timestamp") ;
+    L.debug (fun m -> m "verifying snapshot") ;
     let* r = Conex_repository.snapshot repo in
     let read_and_verify id =
       let* snap, warn = err_to_str Conex_io.pp_r_err (IO.read_snapshot io id) in
