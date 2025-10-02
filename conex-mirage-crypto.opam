@@ -2,9 +2,9 @@ opam-version: "2.0"
 maintainer: "Hannes Mehnert <hannes@mehnert.org>"
 authors: "Hannes Mehnert <hannes@mehnert.org>"
 license: "BSD2"
-homepage: "https://github.com/hannesm/conex"
-doc: "https://hannesm.github.io/conex/doc"
-bug-reports: "https://github.com/hannesm/conex/issues"
+homepage: "https://github.com/robur-coop/conex"
+doc: "https://robur-coop.github.io/conex/doc"
+bug-reports: "https://github.com/robur-coop/conex/issues"
 depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "2.7"}
@@ -28,7 +28,7 @@ build: [
   ["dune" "build" "-p" name "-j" jobs]
   ["dune" "runtest" "-p" name "-j" jobs] {with-test}
 ]
-dev-repo: "git+https://github.com/hannesm/conex.git"
+dev-repo: "git+https://github.com/robur-coop/conex.git"
 synopsis: "Establishing trust in community repositories: crypto provided via mirage-crypto"
 description: """
 Conex is a system based on [TUF](https://theupdateframework.github.io/) to
