@@ -48,7 +48,7 @@ let create _ dry repodir root_file id =
         Logs.warn (fun m -> m "no snapshots found in root file");
         []
       | Some (key, _, _) ->
-        let path = Conex_repository.keydir repo @ [ key ] in
+        let path = [ key ] in
         match IO.compute_checksum_file io V.raw_digest path with
         | Ok target -> [ target ]
         | Error msg ->
