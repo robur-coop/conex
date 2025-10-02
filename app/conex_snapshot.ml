@@ -99,6 +99,11 @@ let sign _ dry repodir id no_incr root_file =
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading snapshot: %s" w))
       warn;
+    let* () =
+      match M.find_opt id' snap.Snapshot.keys with
+      | None -> Error ("key for " ^ id' ^ " not present in snapshot file")
+      | Some _ -> Ok ()
+    in
     let* snap' =
       match no_incr, Uint.succ snap.Snapshot.counter with
       | false, (true, _) -> Error "couldn't increment counter"

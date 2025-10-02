@@ -221,6 +221,11 @@ let sign _ dry repodir id no_incr filename =
     let* io = repo ~rw:(not dry) repodir in
     let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
+    let* () =
+      match M.find_opt id' root.Root.keys with
+      | None -> Error ("key for " ^ id' ^ " not present in root file, please use add-key")
+      | Some _ -> Ok ()
+    in
     let* root' =
       match no_incr, Uint.succ root.Root.counter with
       | false, (true, _) -> Error "couldn't increment counter"

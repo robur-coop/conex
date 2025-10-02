@@ -105,6 +105,11 @@ let sign _ dry repodir id no_incr root_file no_opam =
     let* targets, warn =
       to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
+    let* () =
+      match M.find_opt id' targets.Targets.keys with
+      | None -> Error ("key for " ^ id' ^ " not present in targets file")
+      | Some _ -> Ok ()
+    in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let* targets' =
       match no_incr, Uint.succ targets.Targets.counter with

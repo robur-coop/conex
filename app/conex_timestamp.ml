@@ -95,6 +95,11 @@ let sign _ dry repodir id no_incr root_file =
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading timestamp: %s" w))
       warn;
+    let* () =
+      match M.find_opt id' ts.Timestamp.keys with
+      | None -> Error ("key for " ^ id' ^ " not present in timestamp file")
+      | Some _ -> Ok ()
+    in
     let* ts' =
       match no_incr, Uint.succ ts.Timestamp.counter with
       | false, (true, _) -> Error "couldn't increment counter"
