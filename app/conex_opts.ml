@@ -11,7 +11,7 @@ module Keys = struct
       else
         Error "invalid identifier (valid: A-Za-z0-9)"
     in
-    Arg.Conv.make ~docv:"ID" ~parser ~pp:Format.pp_print_string ()
+    Arg.conv' ~docv:"ID" (parser, Format.pp_print_string)
 
   let id =
     let doc = "Use a specific identity (not needed unless you have more than one identity)." in
@@ -50,7 +50,7 @@ module Keys = struct
       | None -> Error "Invalid uint"
       | Some u -> Ok u
     in
-    Arg.Conv.make ~docv:"UINT" ~parser ~pp:Conex_utils.Uint.pp ()
+    Arg.conv' ~docv:"UINT" (parser, Conex_utils.Uint.pp)
 
   let epoch =
     let doc = "Epoch." in
