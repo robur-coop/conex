@@ -838,15 +838,22 @@ module Target = struct
       (pp_list Digest.pp) t.digest
   [@@coverage off]
 
-  let valid_opam_path t =
+  let valid_opam_path datadir t =
     (* this is an opam repository side condition:
        [ foo ; foo.version ; opam ]
        [ foo ; foo.version ; files ; _ ]
        or [ foo.version ; opam ] [ foo.version ; files ; _ ] *)
-    match t.filename with
-    | [ pname ; pversion ; "opam" ] | [ pname ; pversion ; "files" ; _ ] ->
+    match strip_prefix ~prefix:datadir t.filename with
+    | Some [ pname ; pversion ; "opam" ] | Some [ pname ; pversion ; "files" ; _ ] ->
       String.is_prefix ~prefix:(pname ^ ".") pversion
-    | [ _ ; "opam" ] | [ _ ; "files" ; _ ] -> true
+    | Some [ _ ; "opam" ] | Some [ _ ; "files" ; _ ] -> true
+    | _ -> false
+
+  let collect_opam_file datadir t =
+    match strip_prefix ~prefix:datadir t.filename with
+    | Some [ pname ; pversion ; "opam" ] ->
+      String.is_prefix ~prefix:(pname ^ ".") pversion
+    | Some [ _ ; "opam" ] -> true
     | _ -> false
 
   let of_wire wire =
@@ -963,7 +970,7 @@ module Timestamp = struct
     and counter = t.counter
     and epoch = t.epoch
     and name = t.name
-    and typ = `Targets
+    and typ = `Timestamp
     in
     let header = { Header.version ; created ; counter ; epoch ; name ; typ } in
     M.add "keys" (List (M.fold (fun _ key acc -> Key.wire_raw key :: acc) t.keys []))
@@ -1054,7 +1061,7 @@ module Snapshot = struct
     and counter = t.counter
     and epoch = t.epoch
     and name = t.name
-    and typ = `Targets
+    and typ = `Snapshot
     in
     let header = { Header.version ; created ; counter ; epoch ; name ; typ } in
     M.add "keys" (List (M.fold (fun _ key acc -> Key.wire_raw key :: acc) t.keys []))

@@ -2,20 +2,20 @@ opam-version: "2.0"
 maintainer: "Hannes Mehnert <hannes@mehnert.org>"
 authors: "Hannes Mehnert <hannes@mehnert.org>"
 license: "BSD2"
-homepage: "https://github.com/hannesm/conex"
-doc: "https://hannesm.github.io/conex/doc"
-bug-reports: "https://github.com/hannesm/conex/issues"
+homepage: "https://github.com/robur-coop/conex"
+doc: "https://robur-coop.github.io/conex/doc"
+bug-reports: "https://github.com/robur-coop/conex/issues"
 depends: [
   "ocaml" {>= "4.13.0"}
   "dune" {>= "2.7"}
-  "cmdliner" {>= "1.1.0"}
+  "cmdliner" {>= "2.0.0"}
   "opam-file-format" {>= "2.1.1"}
 ]
 build: [
   ["dune" "subst"] {dev}
   ["dune" "build" "-p" name "-j" jobs]
 ]
-dev-repo: "git+https://github.com/hannesm/conex.git"
+dev-repo: "git+https://github.com/robur-coop/conex.git"
 synopsis: "Establishing trust in community repositories"
 description: """
 Conex is a system based on [TUF](https://theupdateframework.github.io/) to

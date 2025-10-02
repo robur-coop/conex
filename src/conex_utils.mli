@@ -242,6 +242,10 @@ val path_equal : path -> path -> bool
 (** [subpath ~parent p] is [true] if [p] starts with all segments of [parent]. *)
 val subpath : parent:path -> path -> bool
 
+(** [strip_prefix ~prefix p] strips the prefix from [p]
+    (only if [subpath ~paren:prefix p] is true). Returns [None] otherwise. *)
+val strip_prefix : prefix:path -> path -> path option
+
 (** [pp_path] is a pretty printer for a path. *)
 val pp_path : path fmt
 

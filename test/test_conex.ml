@@ -994,6 +994,9 @@ module VF = Conex_verify.Make(
   end)
 
 module RepoTests = struct
+  let target_t =
+    Alcotest.testable Target.pp Target.equal
+
   let ctree =
     let module M = struct
       type t = (Digest.t * Uint.t * S.t) Tree.t
@@ -1010,6 +1013,27 @@ module RepoTests = struct
         Tree.equal eq_triple
     end in
     (module M : Alcotest.TESTABLE with type t = M.t)
+
+  let target_dec () =
+    let data = {|expr: [
+        [size 0x1FF]
+        [filename "foo/foo.1.0.0/opam"]
+        [
+          digest
+          [
+            "sha256=ccea69740e61ce074ed53019ac0dcde3c9602b00bdf21b12c0e53be2328f9b52"
+          ]
+        ]
+      ]|}
+    in
+    let target = Target.{
+        filename = [ "foo" ; "foo.1.0.0" ; "opam" ];
+        digest = [ `SHA256, "ccea69740e61ce074ed53019ac0dcde3c9602b00bdf21b12c0e53be2328f9b52" ];
+        size = Option.get (Uint.of_int 511)
+      }
+    in
+    Alcotest.check (result target_t Alcotest.string) "basic target decoding"
+      (Ok target) (Target.of_wire (wire_s data))
 
   let basic_good_target () =
     let id1 = "foo"
@@ -1794,6 +1818,7 @@ module RepoTests = struct
          keys [ "bar" ] expr [ targets1 ; targets2 ])
 
   let tests = [
+    "decoding a target", `Quick, target_dec ;
     "basic good target", `Quick, basic_good_target ;
     "partial good targets", `Quick, partial_good_targets ;
     "wrong epoch target", `Quick, wrong_epoch_target ;

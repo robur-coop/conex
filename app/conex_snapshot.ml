@@ -3,13 +3,13 @@ open Conex_resource
 
 open Conex_mc
 
-module IO = Conex_io
+module IO = Conex_io.Make(Logs)
 
 let ( let* ) = Result.bind
 
 let io_repo ~rw repodir root_file =
   let* io = Conex_opts.repo ~rw repodir in
-  let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+  let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
   List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
   Logs.debug (fun m -> m "root file %a" Root.pp root) ;
   let repo = Conex_repository.create root in
@@ -42,12 +42,12 @@ let create _ dry repodir root_file id =
     let* io, repo = io_repo ~rw:(not dry) repodir root_file in
     let* id = snap_id id repo in
     let* targets =
-      IO.compute_checksum ~prefix:(Conex_repository.keydir repo)
-        io false V.raw_digest []
+      IO.compute_checksum ~prefix:[]
+        io false V.raw_digest (Conex_repository.keydir repo)
     in
     let targets =
       let f =
-        match Conex_repository.timestamp repo with
+        match Conex_repository.snapshot repo with
         | Ok (Some (tid, _, _)) -> (fun tgt_id -> not (id_equal tid tgt_id))
         | _ -> (fun _ -> true)
       in
@@ -63,20 +63,20 @@ let create _ dry repodir root_file id =
     let old_snap, warn = match IO.read_snapshot io id with
       | Ok snap -> snap
       | Error e ->
-        Logs.warn (fun m -> m "error %a while reading snapshot" IO.pp_r_err e);
+        Logs.warn (fun m -> m "error %a while reading snapshot" Conex_io.pp_r_err e);
         Snapshot.t now id, []
     in
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading snapshot: %s" w))
       warn;
-    let ts =
-      Timestamp.t ~counter:old_snap.Snapshot.counter
+    let snap =
+      Snapshot.t ~counter:old_snap.Snapshot.counter
         ~epoch:old_snap.Snapshot.epoch
         ~keys:old_snap.Snapshot.keys
         ~targets now id
     in
-    Logs.app (fun m -> m "timestamp file %a" Timestamp.pp ts) ;
-    IO.write_timestamp io ts)
+    Logs.app (fun m -> m "snapshot file %a" Snapshot.pp snap) ;
+    IO.write_snapshot io snap)
 
 let sign _ dry repodir id no_incr root_file =
   Mirage_crypto_rng_unix.use_default () ;
@@ -84,7 +84,7 @@ let sign _ dry repodir id no_incr root_file =
     let* io, repo = io_repo ~rw:(not dry) repodir root_file in
     let* snap_id = snap_id id repo in
     let* priv, id' = init_priv_id (Some snap_id) in
-    let* snap, warn = to_str IO.pp_r_err (IO.read_snapshot io id') in
+    let* snap, warn = to_str Conex_io.pp_r_err (IO.read_snapshot io id') in
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading snapshot: %s" w))
       warn;

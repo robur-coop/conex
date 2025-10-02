@@ -1,7 +1,6 @@
 open Conex_resource
 open Conex_utils
 
-(* the targets tree uses the datadir ["packages"] as root []! *)
 type t = {
   root : Root.t ;
   targets : (Digest.t * Uint.t * S.t) Tree.t ;
@@ -92,7 +91,14 @@ let validate_targets t on_disk =
         match ds with
         | [] -> acc
         | _ -> match Tree.lookup path t.targets with
-          | None -> `Only_on_disk path :: acc
+          | None ->
+            if Target.collect_opam_file
+                t.root.Root.datadir
+                Target.{ filename = path ; digest = []; size = Uint.zero }
+            then
+              `Only_on_disk path :: acc
+            else
+              acc
           | Some xs ->
             let in_targets d = List.exists (matches d) xs in
             if List.exists in_targets ds

@@ -1,7 +1,5 @@
 ## Conex - establish trust in community repositories
 
-%%VERSION%%
-
 Conex is a utility for verify and attest release integrity and authenticity of community repositories through the use of cryptographic signatures (RSA-PSS-SHA256). It is based on [the update framework](https://theupdateframework.github.io/), especially on their [CCS 2010 paper](https://isis.poly.edu/~jcappos/papers/samuel_tuf_ccs_2010.pdf), and adapted to the requirements of the [opam](https://ocaml.opam.org) [repository](https://github.com/ocaml/opam-repository).
 
 The developer sign their release checksums and build instructions.  A quorum (with a configurable threshold) of repository maintainers signs the package name to developer key relation.  These repository maintainers are enrolled by a quorum of offline root keys.
@@ -23,6 +21,6 @@ Another article on an [even earlier design (from 2015)](http://opam.ocaml.org/bl
 Conex release tarballs are accompanied with OpenPGP signatures in a separate .sig file in the download area.
 
 `opam instal conex` will install this library and tool,
-once you have installed OCaml (>= 4.13.0) and opam (>= 2.0.0beta).
+once you have installed OCaml (>= 4.13.0) and opam (>= 2.3.0).
 
 A small test repository with two maintainers is available [here](https://github.com/hannesm/testrepo) including transcripts of how it was setup, and how to setup opams `repo validation hook`.

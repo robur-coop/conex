@@ -5,13 +5,13 @@ module Keys = struct
   let docs = "COMMON OPTIONS"
 
   let id_c =
-    let parse s =
+    let parser s =
       if Conex_utils.String.is_ascii ~p:(function '_' | '.' | '=' | '-' -> true | _ -> false) s then
-        `Ok s
+        Ok s
       else
-        `Error "invalid identifier (valid: A-Za-z0-9)"
+        Error "invalid identifier (valid: A-Za-z0-9)"
     in
-    (parse, fun ppf s -> Format.pp_print_string ppf s)
+    Arg.Conv.make ~docv:"ID" ~parser ~pp:Format.pp_print_string ()
 
   let id =
     let doc = "Use a specific identity (not needed unless you have more than one identity)." in
@@ -45,12 +45,12 @@ module Keys = struct
     Arg.(value & opt (some string) None & info ["key-hash"] ~docs ~doc)
 
   let uint_c =
-    let parse s =
+    let parser s =
       match Conex_utils.Uint.of_string s with
-      | None -> `Error "Invalid uint"
-      | Some u -> `Ok u
+      | None -> Error "Invalid uint"
+      | Some u -> Ok u
     in
-    (parse, Conex_utils.Uint.pp)
+    Arg.Conv.make ~docv:"UINT" ~parser ~pp:Conex_utils.Uint.pp ()
 
   let epoch =
     let doc = "Epoch." in

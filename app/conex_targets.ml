@@ -4,7 +4,7 @@ open Conex_resource
 open Conex_opts
 open Conex_mc
 
-module IO = Conex_io
+module IO = Conex_io.Make(Logs)
 
 let ( let* ) = Result.bind
 
@@ -18,7 +18,7 @@ let find_id io root id =
 let status _ repodir id root_file no_opam =
   msg_to_cmdliner (
     let* io = repo ~rw:false repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     Logs.debug (fun m -> m "root file %a" Root.pp root) ;
     let repo = Conex_repository.create root in
@@ -32,7 +32,7 @@ let create _ repodir id dry root_file no_opam =
   msg_to_cmdliner (
     let* priv, id' = init_priv_id id in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     Logs.debug (fun m -> m "root file %a" Root.pp root) ;
     let targets =
@@ -55,11 +55,11 @@ let hash _ repodir id root_file no_opam =
   msg_to_cmdliner (
     let* id' = Option.to_result ~none:"requires id" id in
     let* io = repo ~rw:false repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     Logs.debug (fun m -> m "root file %a" Root.pp root) ;
     let* targets, warn =
-      to_str IO.pp_r_err (IO.read_targets io root (not no_opam) id')
+      to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let keys =
@@ -74,7 +74,7 @@ let hash _ repodir id root_file no_opam =
 let compute _ dry repodir id pkg root_file no_opam =
   msg_to_cmdliner (
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     Logs.debug (fun m -> m "root file %a" Root.pp root) ;
     let path = Option.fold ~none:[] ~some:(fun p -> [ p ]) pkg in
@@ -88,7 +88,7 @@ let compute _ dry repodir id pkg root_file no_opam =
     Logs.app (fun m -> m "computed targets: %s" (Conex_opam_encoding.encode out)) ;
     let* id' = Option.to_result ~none:"requires id for writing" id in
     let* t, warn =
-      to_str IO.pp_r_err (IO.read_targets io root (not no_opam) id')
+      to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let t' = { t with Targets.targets = t.Targets.targets @ targets } in
@@ -99,11 +99,11 @@ let sign _ dry repodir id no_incr root_file no_opam =
   msg_to_cmdliner (
     let* priv, id' = init_priv_id id in
     let* io = repo ~rw:(not dry) repodir in
-    let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+    let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     Logs.debug (fun m -> m "root is %a" Root.pp root) ;
     let* targets, warn =
-      to_str IO.pp_r_err (IO.read_targets io root (not no_opam) id')
+      to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let* targets' =

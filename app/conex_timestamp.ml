@@ -3,13 +3,13 @@ open Conex_resource
 
 open Conex_mc
 
-module IO = Conex_io
+module IO = Conex_io.Make(Logs)
 
 let ( let* ) = Result.bind
 
 let io_repo ~rw repodir root_file =
   let* io = Conex_opts.repo ~rw repodir in
-  let* root, warn = to_str IO.pp_r_err (IO.read_root io root_file) in
+  let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
   List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
   Logs.debug (fun m -> m "root file %a" Root.pp root) ;
   let repo = Conex_repository.create root in
@@ -48,7 +48,7 @@ let create _ dry repodir root_file id =
         Logs.warn (fun m -> m "no snapshots found in root file");
         []
       | Some (key, _, _) ->
-        let path = Conex_repository.keydir repo @ [ key ] in
+        let path = [ key ] in
         match IO.compute_checksum_file io V.raw_digest path with
         | Ok target -> [ target ]
         | Error msg ->
@@ -59,7 +59,7 @@ let create _ dry repodir root_file id =
     let old_ts, warn = match IO.read_timestamp io id with
       | Ok ts -> ts
       | Error e ->
-        Logs.warn (fun m -> m "error %a while reading timestamp" IO.pp_r_err e);
+        Logs.warn (fun m -> m "error %a while reading timestamp" Conex_io.pp_r_err e);
         Timestamp.t now id, []
     in
     List.iter
@@ -80,7 +80,7 @@ let sign _ dry repodir id no_incr root_file =
     let* io, repo = io_repo ~rw:(not dry) repodir root_file in
     let* time_id = time_id id repo in
     let* priv, id' = init_priv_id (Some time_id) in
-    let* ts, warn = to_str IO.pp_r_err (IO.read_timestamp io id') in
+    let* ts, warn = to_str Conex_io.pp_r_err (IO.read_timestamp io id') in
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading timestamp: %s" w))
       warn;
