@@ -70,13 +70,24 @@ let create _ dry repodir force filename =
 let add_key _ dry repodir quorum id alg data filename =
   msg_to_cmdliner (
     let* id = Option.to_result ~none:"Missing identity" id in
-    let* data = Option.to_result ~none:"Missing key data" data in
-    let* data = Conex_unix_persistency.read_file data in
+    let* (alg, key_data) =
+      match data with
+      | Some data ->
+        let* key = Conex_unix_persistency.read_file data in
+        Ok (alg, key)
+      | None ->
+        match PRIV.read to_ts id with
+        | Error e ->
+            Error (Fmt.str "Missing key-data, error %a while reading private key" PRIV.pp_r_err e)
+        | Ok key ->
+          let (_, _, alg, data) = PRIV.pub_of_priv key in
+          Ok (alg, data)
+    in
     let* io = repo ~rw:(not dry) repodir in
     let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
     let root' =
-      let key = (id, now, alg, data) in
+      let key = (id, now, alg, key_data) in
       let valid = match root.valid with
         | Expression.Quorum (q, ks) ->
           let q = Option.value ~default:q quorum in
@@ -135,7 +146,17 @@ let add_to_role _ dry repodir role id alg h epoch quorum filename =
   msg_to_cmdliner (
     let* id = Option.to_result ~none:"Missing identity" id in
     let* role = Option.to_result ~none:"Missing role" role in
-    let* h = Option.to_result ~none:"Missing hash" h in
+    let* h =
+      match h with
+      | Some h -> Ok h
+      | None ->
+        match PRIV.read to_ts id with
+        | Error e ->
+          Error (Fmt.str "Missing hash, error %a while reading private key" PRIV.pp_r_err e)
+        | Ok key ->
+          let public = PRIV.pub_of_priv key in
+          Ok (Digest.to_string (Key.keyid V.raw_digest public))
+    in
     let* io = repo ~rw:(not dry) repodir in
     let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
