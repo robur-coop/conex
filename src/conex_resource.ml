@@ -250,12 +250,19 @@ module Digest_map = struct
 end
 
 module Key = struct
-  type alg = [ `RSA ]
+  type alg = [ `RSA | `Ed25519 ]
 
-  let alg_to_string = function `RSA -> "rsa"
-  let string_to_alg = function "rsa" -> Some `RSA | _ -> None
+  let alg_to_string = function
+    | `RSA -> "rsa"
+    | `Ed25519 -> "ed25519"
+  let string_to_alg = function
+    | "rsa" -> Some `RSA
+    | "ed25519" -> Some `Ed25519
+    | _ -> None
   let alg_equal a b = match a, b with
     | `RSA, `RSA -> true
+    | `Ed25519, `Ed25519 -> true
+    | _ -> false
 
   type t = identifier * timestamp * alg * string
 
@@ -311,16 +318,20 @@ module Key = struct
 end
 
 module Signature = struct
-  type alg = [ `RSA_PSS_SHA256 ]
+  type alg = [ `RSA_PSS_SHA256 | `Ed25519 ]
 
   let alg_to_string = function
     | `RSA_PSS_SHA256 -> "rsapss-sha256"
+    | `Ed25519 -> "ed25519"
 
   let alg_equal a b = match a, b with
     | `RSA_PSS_SHA256, `RSA_PSS_SHA256 -> true
+    | `Ed25519, `Ed25519 -> true
+    | _ -> false
 
   let string_to_alg = function
     | "rsapss-sha256" -> Some `RSA_PSS_SHA256
+    | "ed25519" -> Some `Ed25519
     | _ -> None
 
   type t = identifier * timestamp * alg * string

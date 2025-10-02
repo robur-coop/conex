@@ -13,10 +13,10 @@ module type S = sig
   val bits : t -> int
   val created : t -> timestamp
   val id : t -> string
+  val alg : t -> Conex_resource.Key.alg
   val generate : ?bits:int -> (float -> Conex_resource.timestamp option) -> Key.alg -> identifier -> unit -> (t, string) result
   val pub_of_priv : t -> Key.t
-  val sign : Wire.t -> timestamp -> identifier -> Signature.alg -> t ->
-    (Signature.t, string) result
+  val sign : Wire.t -> timestamp -> identifier -> t -> (Signature.t, string) result
 end
 
 module type FS = sig
@@ -25,20 +25,21 @@ module type FS = sig
   val write : Conex_resource.identifier -> string -> (unit, string) result
 end
 
-module type S_RSA_BACK = sig
+module type S_BACK = sig
   type t
 
   val decode_priv : string -> Conex_resource.timestamp -> string -> (t, string) result
   val bits : t -> int
   val created : t -> Conex_resource.timestamp
   val id : t -> Conex_resource.identifier
-  val generate_rsa : ?bits:int -> unit -> string * string
-  val pub_of_priv_rsa : t -> string
-  val sign_pss : t -> string -> (string, string) result
+  val alg : t -> Conex_resource.Key.alg
+  val generate : alg:Conex_resource.Key.alg -> ?bits:int -> unit -> string * string
+  val pub_of_priv : t -> string
+  val sign : t -> string -> (string, string) result
   val sha256 : string -> string
 end
 
-module Make (C : S_RSA_BACK) (F : FS) = struct
+module Make (C : S_BACK) (F : FS) = struct
   open Conex_resource
 
   type t = C.t
@@ -78,30 +79,29 @@ module Make (C : S_RSA_BACK) (F : FS) = struct
 
   let id = C.id
 
+  let alg = C.alg
+
   let ( let* ) = Result.bind
 
   let generate ?bits to_ts alg id () =
-    match alg with
-    | `RSA ->
-      let key, pub = C.generate_rsa ?bits () in
-      let filename =
-        let pub' = (id, "", `RSA, pub) in
-        let keyid = Key.keyid (fun s -> `SHA256, C.sha256 s) pub' in
-        get_id id ^ "." ^ Digest.to_string keyid
-      in
-      let* () = F.write filename key in
-      let* _, ts = F.read to_ts filename in
-      C.decode_priv id ts key
+    let key, pub = C.generate ~alg ?bits () in
+    let filename =
+      let pub' = (id, "", alg, pub) in
+      let keyid = Key.keyid (fun s -> `SHA256, C.sha256 s) pub' in
+      get_id id ^ "." ^ Digest.to_string keyid
+    in
+    let* () = F.write filename key in
+    let* _, ts = F.read to_ts filename in
+    C.decode_priv id ts key
 
   let pub_of_priv t =
-    let pub = C.pub_of_priv_rsa t in
-    (id t, created t, `RSA, pub)
+    let pub = C.pub_of_priv t in
+    (id t, created t, C.alg t, pub)
 
   (* TODO allows data to be empty, is this good? *)
-  let sign data now id alg t =
-    match alg with
-    | `RSA_PSS_SHA256 ->
-      let data = Wire.to_string (to_be_signed data now id alg) in
-      let* raw = C.sign_pss t data in
-      Ok (id, now, alg, raw)
+  let sign data now id t =
+    let alg = match C.alg t with `RSA -> `RSA_PSS_SHA256 | `Ed25519 -> `Ed25519 in
+    let data = Wire.to_string (to_be_signed data now id alg) in
+    let* raw = C.sign t data in
+    Ok (id, now, alg, raw)
 end

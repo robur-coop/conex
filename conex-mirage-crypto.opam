@@ -13,6 +13,7 @@ depends: [
   "cmdliner" {>= "1.1.0"}
   "conex" {= version}
   "mirage-crypto-pk" {>= "1.0.0"}
+  "mirage-crypto-ec" {>= "1.0.0"}
   "mirage-crypto-rng" {>= "1.2.0"}
   "x509" {>= "1.0.0"}
   "logs"

@@ -125,6 +125,33 @@ module V = struct
        in
        res)
 
+  let pem_of_ed25519 k =
+    {|-----BEGIN PUBLIC KEY-----
+nMCowBQYDK2VwAyEA|} ^ k ^ {|
+-----END PUBLIC KEY-----|}
+
+  (* Since openssl 3.0.1 *)
+  let verify_ed25519 ~key ~data ~signature id =
+    let* signature =
+      try Ok (B64.decode signature) with _ -> Error (`InvalidBase64Encoding id)
+    in
+    Result.map_error (function
+        | "broken" -> `InvalidSignature id
+        | _ -> `InvalidPublicKey id)
+      (let filename = Filename.temp_file "conex" "sig" in
+       let key = pem_of_ed25519 key in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".key") key in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".txt") data in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".sig") signature in
+       let cmd = Printf.sprintf "openssl pkeyutl -verify -pubin -inkey %s.key -rawin -in %s.txt -sigfile %s.sig > /dev/null" filename filename filename in
+       let res = if 0 = Sys.command cmd then Ok () else Error "broken" in
+       let _ = Conex_unix_persistency.remove (filename ^ ".txt")
+       and _ = Conex_unix_persistency.remove (filename ^ ".key")
+       and _ = Conex_unix_persistency.remove (filename ^ ".sig")
+       and _ = Conex_unix_persistency.remove filename
+       in
+       res)
+
   let sha256 data = Sha256.to_hex (Sha256.string data)
 end
 

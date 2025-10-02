@@ -110,9 +110,7 @@ let sign _ dry repodir id no_incr root_file =
       | true, _ -> Ok snap
       | false, (false, counter) -> Ok { snap with Snapshot.counter }
     in
-    let* signature =
-      PRIV.sign (Snapshot.wire_raw snap') now id' `RSA_PSS_SHA256 priv
-    in
+    let* signature = PRIV.sign (Snapshot.wire_raw snap') now id' priv in
     let snap'' = Snapshot.add_signature snap' id' signature in
     IO.write_snapshot io snap'')
 

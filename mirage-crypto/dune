@@ -3,4 +3,4 @@
   (public_name conex-mirage-crypto)
   (wrapped false)
   (instrumentation (backend bisect_ppx))
-  (libraries conex x509 mirage-crypto-pk base64 digestif))
+  (libraries conex x509 mirage-crypto-pk mirage-crypto-ec base64 digestif))

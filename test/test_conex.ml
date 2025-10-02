@@ -990,6 +990,7 @@ end
 module VF = Conex_verify.Make(
   struct
     let verify_rsa_pss ~key:_ ~data:_ ~signature:_ _id = Ok ()
+    let verify_ed25519 ~key:_ ~data:_ ~signature:_ _id = Ok ()
     let sha256 = Conex_mirage_crypto.V.sha256
   end)
 
@@ -1842,7 +1843,7 @@ module RepoTests = struct
 end
 
 
-module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
+module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_BACK) = struct
   let verr =
     let module M = struct
       type t = Conex_verify.error
@@ -1858,14 +1859,14 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
     end in
     (module M : Alcotest.TESTABLE with type t = M.t)
 
-  let raw_sign p d = match Conex_mirage_crypto.C.sign_pss p d with
+  let raw_sign p d = match Conex_mirage_crypto.C.sign p d with
     | Ok s -> s
     | Error e -> Alcotest.fail e
 
   let raw_sig_good data () =
     let pid = "foobar" in
     let pub, p = gen_pub () in
-    let pu = match pub with (_, _, `RSA, k) -> k in
+    let pu = match pub with (_, _, `RSA, k) -> k | (_, _, `Ed25519, _) -> Alcotest.fail "should be RSA" in
     let d = Wire.to_string (to_be_signed data "timestamp" pid `RSA_PSS_SHA256) in
     let signature = raw_sign (Obj.magic p) d in
     Alcotest.check (result Alcotest.unit verr)
@@ -1875,7 +1876,7 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
   let raw_sig_bad ~openssl data () =
     let pid = "foobar" in
     let pub, p = gen_pub () in
-    let pu = match pub with (_, _, `RSA, k) -> k in
+    let pu = match pub with (_, _, `RSA, k) -> k | (_, _, `Ed25519, _) -> Alcotest.fail "should be RSA" in
     let d = Wire.to_string (to_be_signed data "timestamp" pid `RSA_PSS_SHA256) in
     let signature = raw_sign (Obj.magic p) d in
     let badd = d ^ "=" in
@@ -1956,7 +1957,7 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
       roles = Root.RM.empty ;
       signatures = M.empty
     } in
-    match PRIV.sign (Root.wire_raw root) "now!" id `RSA_PSS_SHA256 (Obj.magic p) with
+    match PRIV.sign (Root.wire_raw root) "now!" id (Obj.magic p) with
     | Error e -> Alcotest.fail e
     | Ok signature ->
       let raw_root = Root.wire_raw root in

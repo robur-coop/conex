@@ -23,7 +23,7 @@ module Keys = struct
 
   let key_alg =
     let doc = "Public key algorithm." in
-    Arg.(value & opt (enum [ ("rsa", `RSA) ]) `RSA & info ["key-algorithm"] ~docs ~doc)
+    Arg.(value & opt (enum [ ("ed25519", `Ed25519) ; ("rsa", `RSA) ]) `Ed25519 & info ["key-algorithm"] ~docs ~doc)
 
   let role =
     let doc = "Role." in
