@@ -64,7 +64,18 @@ let create _ dry repodir root_file id =
       | Ok snap -> snap
       | Error e ->
         Logs.warn (fun m -> m "error %a while reading snapshot" Conex_io.pp_r_err e);
-        Snapshot.t now id, []
+        let keys = match PRIV.read to_ts id with
+          | Error `None ->
+            Logs.warn (fun m -> m "no key %s found" id);
+            M.empty
+          | Error e ->
+            Logs.warn (fun m -> m "error %a while reading key %s" PRIV.pp_r_err e id);
+            M.empty
+          | Ok key ->
+            let public = PRIV.pub_of_priv key in
+            M.singleton id public
+        in
+        Snapshot.t ~keys now id, []
     in
     List.iter
       (fun w -> Logs.warn (fun m -> m "warning while reading snapshot: %s" w))
