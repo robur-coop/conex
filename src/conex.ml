@@ -133,10 +133,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
               L.warn (fun m -> m "no timestamp provided, taking snapshot as is");
               Ok (Some snap)
             | Some ts ->
-              let* tgt =
-                let snap_path = Conex_repository.keydir repo @ [ id ] in
-                IO.compute_checksum_file io C.raw_digest snap_path
-              in
+              let* tgt = IO.compute_checksum_file io C.raw_digest [ id ] in
               if List.exists (Target.equal tgt) ts.Timestamp.targets then
                 Ok (Some snap)
               else
