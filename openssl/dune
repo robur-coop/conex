@@ -3,4 +3,4 @@
   (public_name conex.openssl)
   (wrapped false)
   (instrumentation (backend bisect_ppx))
-  (libraries conex unix conex_unix))
+  (libraries conex unix conex_unix sha))

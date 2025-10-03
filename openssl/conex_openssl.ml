@@ -125,22 +125,7 @@ module V = struct
        in
        res)
 
-  (* TODO we may need another sha256 which takes a filename to avoid
-          reading file X, writing file Y, sha256 Y, removing file Y
-          and instead doing sha256 X directly! *)
-  let sha256 data =
-    Result.fold
-      ~ok:Fun.id
-      ~error:(fun e -> invalid_arg e)
-      (let filename = Filename.temp_file "conex" "b64" in
-       let* () = Conex_unix_persistency.write_replace filename data in
-       let cmd = Printf.sprintf "openssl dgst -hex -r -sha256 %s | cut -d ' ' -f 1" filename in
-       (* let cmd = Printf.sprintf "sha256 -q %s" filename in *)
-       let input = Unix.open_process_in cmd in
-       let output = input_line input in
-       let _ = Unix.close_process_in input in
-       let _ = Conex_unix_persistency.remove filename in
-       Ok output)
+  let sha256 data = Sha256.to_hex (Sha256.string data)
 end
 
 module O_V = Conex_verify.Make (V)
