@@ -155,7 +155,7 @@ let add_to_role _ dry repodir role id alg h epoch quorum filename =
           Error (Fmt.str "Missing hash, error %a while reading private key" PRIV.pp_r_err e)
         | Ok key ->
           let public = PRIV.pub_of_priv key in
-          Ok (Digest.to_string (Key.keyid V.raw_digest public))
+          Ok (snd (Key.keyid V.raw_digest public))
     in
     let* io = repo ~rw:(not dry) repodir in
     let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io filename) in
