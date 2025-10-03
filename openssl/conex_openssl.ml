@@ -127,7 +127,7 @@ module V = struct
 
   let pem_of_ed25519 k =
     {|-----BEGIN PUBLIC KEY-----
-nMCowBQYDK2VwAyEA|} ^ k ^ {|
+MCowBQYDK2VwAyEA|} ^ k ^ {|
 -----END PUBLIC KEY-----|}
 
   (* Since openssl 3.0.1 *)
@@ -149,7 +149,7 @@ nMCowBQYDK2VwAyEA|} ^ k ^ {|
        and _ = Conex_unix_persistency.remove (filename ^ ".key")
        and _ = Conex_unix_persistency.remove (filename ^ ".sig")
        and _ = Conex_unix_persistency.remove filename
-       in
+       in 
        res)
 
   let sha256 data = Sha256.to_hex (Sha256.string data)
