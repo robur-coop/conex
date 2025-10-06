@@ -93,6 +93,8 @@ module V = struct
      "OpenSSL 0.9.8zh-freebsd 3 Dec 2015" ; FreeBSD 9.3
      "OpenSSL 0.9.8o 01 Jun 2010" ; debian 6.0.10
      "OpenSSL 0.9.8k" ; reynir
+
+     OpenSSL 3.0.1 (for ED25519)
   *)
 
   let check_version () =
@@ -100,8 +102,13 @@ module V = struct
     let input = Unix.open_process_in cmd in
     let output = input_line input in
     let _ = Unix.close_process_in input in
-    if String.is_prefix ~prefix:"OpenSSL 0." output then
-      Error ("need at least OpenSSL 1.0.0(u?), found: " ^ output)
+    if
+      String.is_prefix ~prefix:"OpenSSL 0." output ||
+      String.is_prefix ~prefix:"OpenSSL 1." output ||
+      String.is_prefix ~prefix:"OpenSSL 2." output ||
+      String.is_prefix ~prefix:"OpenSSL 3.0.0" output
+    then
+      Error ("need at least OpenSSL 3.0.1, found: " ^ output)
     else
       Ok ()
 
@@ -149,7 +156,7 @@ MCowBQYDK2VwAyEA|} ^ k ^ {|
        and _ = Conex_unix_persistency.remove (filename ^ ".key")
        and _ = Conex_unix_persistency.remove (filename ^ ".sig")
        and _ = Conex_unix_persistency.remove filename
-       in 
+       in
        res)
 
   let sha256 data = Sha256.to_hex (Sha256.string data)
