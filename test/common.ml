@@ -21,16 +21,31 @@ let sset =
   end in
   (module M: Alcotest.TESTABLE with type t = M.t)
 
-let privkey = ref None
+let rsa_privkey = ref None
 
-let gen_pub () =
-  let priv = match !privkey with
+let gen_rsa_pub () =
+  let priv = match !rsa_privkey with
     | Some p -> p
     | None ->
       match PRIV.generate ~bits:2048 (fun _ -> Some "") `RSA "foo" () with
       | Error e -> Alcotest.fail e
       | Ok p ->
-        privkey := Some p ;
+        rsa_privkey := Some p ;
+        p
+  in
+  let pub = PRIV.pub_of_priv priv in
+  (pub, priv)
+
+let ed25519_privkey = ref None
+
+let gen_ed25519_pub () =
+  let priv = match !ed25519_privkey with
+    | Some p -> p
+    | None ->
+      match PRIV.generate (fun _ -> Some "") `Ed25519 "foo" () with
+      | Error e -> Alcotest.fail e
+      | Ok p ->
+        ed25519_privkey := Some p ;
         p
   in
   let pub = PRIV.pub_of_priv priv in

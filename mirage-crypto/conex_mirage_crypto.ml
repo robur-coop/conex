@@ -36,12 +36,13 @@ module V = struct
     let* key =
       let* decoded =
         Result.map_error
-          (fun (`Msg msg) -> `InvalidPublicKey (Fmt.str "id %s error %s" id msg))
+          (fun (`Msg _msg) -> `InvalidPublicKey id (*(Fmt.str "id %s error %s" id msg)*))
           (Base64.decode key)
       in
       Result.map_error
-        (fun e ->
-           `InvalidPublicKey (Fmt.str "id %s error %a" id Mirage_crypto_ec.pp_error e))
+        (fun _e ->
+           `InvalidPublicKey id
+           (*(Fmt.str "id %s error %a" id Mirage_crypto_ec.pp_error e) *))
         (Mirage_crypto_ec.Ed25519.pub_of_octets decoded)
     in
     guard (Mirage_crypto_ec.Ed25519.verify ~key signature ~msg:data)
