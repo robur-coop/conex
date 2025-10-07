@@ -24,9 +24,7 @@ module S = struct
   let of_list es = List.fold_right add es empty
 end
 
-let str_pp pp e =
-  Format.(fprintf str_formatter "%a" pp e) ;
-  Format.flush_str_formatter ()
+let str_pp pp e = Format.asprintf "%a" pp e
 
 let ( let* ) = Result.bind
 
