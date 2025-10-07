@@ -1,20 +1,24 @@
 open Conex_utils
 open Conex_io
-open Conex_diff
 
 (* this a very basic implementation, far from being general:
    - only a single (well-formed) patch file is used for creating a diff provider
 *)
 let target = function
-  | Edit name
-  | Rename (_, name)
-  | Rename_only (_, name)
-  | Create name -> Some name
-  | Delete _ -> None
+  | Patch.Edit (_, name)
+  | Create name
+  | Git_ext (_, name, Rename_only _)
+  | Git_ext (_, name, Create_only) -> Some name
+  | Delete _
+  | Git_ext (_, _, Delete_only) -> None
 
 let source = function
-  | Rename (old, _) | Rename_only (old, _) | Delete old | Edit old -> Some old
-  | _ -> None
+  | Patch.Edit (old, _)
+  | Delete old
+  | Git_ext (old, _, Rename_only _)
+  | Git_ext (old, _, Delete_only) -> Some old
+  | Create _
+  | Git_ext (_, _, Create_only) -> None
 
 module FS = Set.Make(struct
     type t = file_type * string
@@ -23,10 +27,10 @@ module FS = Set.Make(struct
       | File, Directory -> 1 | Directory, File -> -1
   end)
 
-let apply provider diffs =
+let apply provider (diffs : Patch.t list) =
   let find_diff f path =
     List.find_opt (fun x ->
-        match f x.operation with
+        match f x.Patch.operation with
         | None -> false
         | Some path' -> path_equal (string_to_path_exn path') path)
       diffs
@@ -36,7 +40,7 @@ let apply provider diffs =
     | None, None -> provider.read path
     | None, Some _ -> Error "no data"
     | Some diff, _ ->
-      let res_patch old = match patch old diff with
+      let res_patch old = match Patch.patch ~cleanly:true old diff with
         | None -> Error "no data"
         | Some data -> Ok data
       in
@@ -73,11 +77,18 @@ let apply provider diffs =
     in
     let stuff =
       List.fold_left (fun acc d ->
-          match d.operation with
-          | Create name | Edit name -> opt_add (drop_pre true name) acc
-          | Rename (old, name) | Rename_only (old, name) ->
+          match d.Patch.operation with
+          | Patch.Create name | Git_ext (_, name, Create_only) ->
+            opt_add (drop_pre true name) acc
+          | Edit (old, name) ->
+            if String.equal old name then
+              opt_add (drop_pre true name) acc
+            else
+              opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
+          | Git_ext (old, name, Rename_only _) ->
             opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
-          | Delete old -> opt_rem (drop_pre false old) acc)
+          | Delete old | Git_ext (old, _, Delete_only) ->
+            opt_rem (drop_pre false old) acc)
         old diffs
     in
     Ok (FS.elements stuff)
@@ -93,5 +104,29 @@ let apply provider diffs =
   { basedir ; description ; file_type ; read ; write ; read_dir ; exists }
 
 let apply_diff io data =
-  let diffs = Conex_diff.to_diffs data in
+  (* TODO check whether ~p:0 is the right thing for opam *)
+  let diffs = Patch.parse ~p:0 data in
   apply io diffs, diffs
+
+(* TODO which equality to use here? is = ok? *)
+let ids root keydir diffs =
+  let ( let* ) = Result.bind in
+  List.fold_left (fun acc diff ->
+      let add_name name (r, ids) =
+        let* path = string_to_path name in
+        if subpath ~parent:keydir path then
+          (* TODO according to here, keydir must be flat! *)
+          match List.rev path with
+          | id :: _ -> Ok (r, S.add id ids)
+          | [] -> Error "empty keydir path?"
+        else match path with
+          | [ x ] when x = root -> Ok (true, ids)
+          | _ -> Ok (r, ids)
+      in
+      let* r, ids = acc in
+      match diff.Patch.operation with
+      | Create a | Delete a -> add_name a (r, ids)
+      | Git_ext (a, b, _) | Edit (a, b) ->
+        let* ids' = add_name a (r, ids) in
+        add_name b ids')
+    (Ok (false, S.empty)) diffs
