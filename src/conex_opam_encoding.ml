@@ -41,8 +41,7 @@ let encode t =
   in
   let file = { OpamParserTypes.file_contents ; file_name = "" } in
   (* TODO use OpamPrinter.Preserved.items txt orig f here, requires  old data *)
-  OpamPrinter.FullPos.format_opamfile Format.str_formatter file ;
-  Format.flush_str_formatter ()
+  Format.asprintf "%a" OpamPrinter.FullPos.format_opamfile file
 
 let rec decode_s s =
   match s.OpamParserTypes.pelem with
