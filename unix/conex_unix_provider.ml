@@ -4,8 +4,20 @@ open Conex_io
 
 let ( let* ) = Result.bind
 
+let realpath dir =
+  (* Unix.realpath is only 4.13+ *)
+  let cwd_chdir dir =
+    let cwd =
+      try Sys.getcwd ()
+      with Sys_error _ -> Filename.get_temp_dir_name ()
+    in
+    Unix.chdir dir;
+    cwd
+  in
+  try cwd_chdir (cwd_chdir dir) with Unix.Unix_error _ -> dir
+
 let fs_provider basedir =
-  let basedir = Unix.realpath basedir in
+  let basedir = realpath basedir in
   let* () =
     if not (exists basedir) then
       mkdir basedir
