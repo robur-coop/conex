@@ -36,6 +36,6 @@ module Make (L : LOGS) (C : Conex_verify.S): sig
   val verify : ?ignore_missing:bool -> ?snapshot:Snapshot.t -> Conex_io.t ->
     Conex_repository.t -> bool -> (unit, string) result
 
-  val verify_diffs : string -> Conex_io.t -> Conex_io.t -> Conex_diff.t list -> bool ->
+  val verify_diffs : string -> Conex_io.t -> Conex_io.t -> Patch.t list -> bool ->
     (unit, string) result
 end

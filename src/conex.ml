@@ -320,7 +320,7 @@ module Make (L : LOGS) (C : Conex_verify.S) = struct
       guard (path_equal old_root.Root.keydir new_root.Root.keydir)
         "old and new key directories are differrent"
     in
-    let* r, ids = Conex_diff.ids root new_root.Root.keydir diffs in
+    let* r, ids = Conex_diff_provider.ids root new_root.Root.keydir diffs in
     L.debug (fun m -> m "root is modified? %b, ids %a" r S.pp ids) ;
     let* () =
       match Uint.compare old_root.Root.counter new_root.Root.counter with
