@@ -21,6 +21,6 @@ Another article on an [even earlier design (from 2015)](http://opam.ocaml.org/bl
 Conex release tarballs are accompanied with OpenPGP signatures in a separate .sig file in the download area.
 
 `opam instal conex` will install this library and tool,
-once you have installed OCaml (>= 4.13.0) and opam (>= 2.3.0).
+once you have installed OCaml (>= 4.08.0) and opam (>= 2.3.0).
 
 A small test repository with two maintainers is available [here](https://github.com/hannesm/testrepo) including transcripts of how it was setup, and how to setup opams `repo validation hook`.
