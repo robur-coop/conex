@@ -88,10 +88,6 @@ module String : sig
       otherwise. *)
   val is_prefix : prefix:t -> t -> bool
 
-  (** [is_suffix ~suffix str] is [true] if [str] ends with [suffix], [false]
-      otherwise. *)
-  val is_suffix : suffix:t -> t -> bool
-
   (** [slice ~start ~stop str] slices [str] into a smaller piece, starting at
       offset [start] (default 0), ending at [stop] (default [String.length]). *)
   val slice : ?start:int -> ?stop:int -> t -> t

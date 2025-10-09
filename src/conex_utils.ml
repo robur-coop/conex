@@ -81,13 +81,6 @@ module String = struct
     else
       compare_strings str prefix pl = 0
 
-  let is_suffix ~suffix str =
-    let sl = String.length suffix in
-    if String.length str < sl then
-      false
-    else
-      String.(equal (sub str (length str - sl) sl) suffix)
-
   let lowercase_char = function
     | 'A' .. 'Z' as c -> char_of_int (int_of_char c + 0x20)
     | c -> c
