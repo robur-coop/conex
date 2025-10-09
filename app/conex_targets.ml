@@ -91,7 +91,14 @@ let compute _ dry repodir id pkg root_file no_opam =
       to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
-    let t' = { t with Targets.targets = t.Targets.targets @ targets } in
+    (* here we need a proper merge strategy:
+       - remove duplicates (same name, size, hash)
+       - remove targets not present on disk
+       - at the same time for threshold signatures there may be the same
+         artifact present with different size & hash, so we can migrate from
+         the old to the new file
+    *)
+    let t' = { t with Targets.targets } in
     IO.write_targets io root t')
 
 let sign _ dry repodir id no_incr root_file no_opam =
