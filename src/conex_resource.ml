@@ -45,9 +45,9 @@ module Wire = struct
       let strs =
         let bindings = M.bindings m in
         let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) bindings in
-        List.map (fun (k, v) -> k ^ ":" ^ s_to_string v) sorted
+        List.map (fun (k, v) -> [ k ; ":" ; s_to_string v]) sorted
       in
-      "{" ^ String.concat ";" strs ^ "}"
+      "{" ^ String.concat ";" (List.flatten strs) ^ "}"
     | Pair (i, s) -> "(" ^ s_to_string i ^ s_to_string s ^ ")"
     | And (a, b) -> "(" ^ s_to_string a ^ "&&" ^ s_to_string b ^ ")"
     | Or (a, b) -> "(" ^ s_to_string a ^ "||" ^ s_to_string b ^ ")"
