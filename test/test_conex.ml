@@ -990,6 +990,7 @@ end
 module VF = Conex_verify.Make(
   struct
     let verify_rsa_pss ~key:_ ~data:_ ~signature:_ _id = Ok ()
+    let verify_ed25519 ~key:_ ~data:_ ~signature:_ _id = Ok ()
     let sha256 = Conex_mirage_crypto.V.sha256
   end)
 
@@ -1842,7 +1843,7 @@ module RepoTests = struct
 end
 
 
-module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
+module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_BACK) = struct
   let verr =
     let module M = struct
       type t = Conex_verify.error
@@ -1858,24 +1859,34 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
     end in
     (module M : Alcotest.TESTABLE with type t = M.t)
 
-  let raw_sign p d = match Conex_mirage_crypto.C.sign_pss p d with
+  let raw_sign p d = match Conex_mirage_crypto.C.sign p d with
     | Ok s -> s
     | Error e -> Alcotest.fail e
 
-  let raw_sig_good data () =
+  let raw_rsa_sig_good data () =
     let pid = "foobar" in
-    let pub, p = gen_pub () in
-    let pu = match pub with (_, _, `RSA, k) -> k in
+    let pub, p = gen_rsa_pub () in
+    let pu = match pub with (_, _, `RSA, k) -> k | (_, _, `Ed25519, _) -> Alcotest.fail "should be RSA" in
     let d = Wire.to_string (to_be_signed data "timestamp" pid `RSA_PSS_SHA256) in
     let signature = raw_sign (Obj.magic p) d in
     Alcotest.check (result Alcotest.unit verr)
       "signature is good" (Ok ())
       (R.verify_rsa_pss pid ~key:pu ~data:d ~signature)
 
-  let raw_sig_bad ~openssl data () =
+  let raw_ed25519_sig_good data () =
     let pid = "foobar" in
-    let pub, p = gen_pub () in
-    let pu = match pub with (_, _, `RSA, k) -> k in
+    let pub, p = gen_ed25519_pub () in
+    let pu = match pub with (_, _, `Ed25519, k) -> k | (_, _, `RSA, _) -> Alcotest.fail "should be ED25519" in
+    let d = Wire.to_string (to_be_signed data "timestamp" pid `Ed25519) in
+    let signature = raw_sign (Obj.magic p) d in
+    Alcotest.check (result Alcotest.unit verr)
+      "signature is good" (Ok ())
+      (R.verify_ed25519 pid ~key:pu ~data:d ~signature)
+
+  let raw_rsa_sig_bad ~openssl data () =
+    let pid = "foobar" in
+    let pub, p = gen_rsa_pub () in
+    let pu = match pub with (_, _, `RSA, k) -> k | (_, _, `Ed25519, _) -> Alcotest.fail "should be RSA" in
     let d = Wire.to_string (to_be_signed data "timestamp" pid `RSA_PSS_SHA256) in
     let signature = raw_sign (Obj.magic p) d in
     let badd = d ^ "=" in
@@ -1902,6 +1913,36 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
       (Error (if openssl then `InvalidSignature pid else `InvalidPublicKey pid))
       (R.verify_rsa_pss pid ~key:badkey ~data:d ~signature)
 
+  let raw_ed25519_sig_bad ~openssl data () =
+    let pid = "foobar" in
+    let pub, p = gen_ed25519_pub () in
+    let pu = match pub with (_, _, `Ed25519, k) -> k | (_, _, `RSA, _) -> Alcotest.fail "should be RSA" in
+    let d = Wire.to_string (to_be_signed data "timestamp" pid `Ed25519) in
+    let signature = raw_sign (Obj.magic p) d in
+    let badd = d ^ "=" in
+    Alcotest.check (result Alcotest.unit verr)
+      "signature is bad (bad data)" (Error (`InvalidSignature pid))
+      (R.verify_ed25519 pid ~key:pu ~data:badd ~signature) ;
+    let badsig = "foo" ^ signature in
+    Alcotest.check (result Alcotest.unit verr)
+      "signature is bad (invalid base64)" (Error (`InvalidBase64Encoding pid))
+      (R.verify_ed25519 pid ~key:pu ~data:d ~signature:badsig) ;
+    let badsig =
+      if openssl then
+        signature ^ "=fdd"
+      else
+        (* the following is fine with OpenSSL :/ *)
+        signature ^ "="
+    in
+    Alcotest.check (result Alcotest.unit verr)
+      "signature is bad (invalid base64) take 2" (Error (`InvalidBase64Encoding pid))
+      (R.verify_ed25519 pid ~key:pu ~data:d ~signature:badsig) ;
+    let badkey = pu ^ "=" in
+    Alcotest.check (result Alcotest.unit verr)
+      "signature is bad (invalid key)"
+      (Error (if openssl then `InvalidSignature pid else `InvalidPublicKey pid))
+      (R.verify_ed25519 pid ~key:badkey ~data:d ~signature)
+
   let raw_sigs ~openssl =
     let tests = [
       M.empty ;
@@ -1913,8 +1954,10 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
     fst (
       List.fold_left (fun (acc, i) data ->
           acc @ [
-            ("sign and verify is good " ^ string_of_int i, `Quick, raw_sig_good data) ;
-            ("sign and verify is bad " ^ string_of_int i, `Quick, raw_sig_bad ~openssl data)
+            ("RSA sign and verify is good " ^ string_of_int i, `Quick, raw_rsa_sig_good data) ;
+            ("ED25519 sign and verify is good " ^ string_of_int i, `Quick, raw_ed25519_sig_good data) ;
+            ("RSA sign and verify is bad " ^ string_of_int i, `Quick, raw_rsa_sig_bad ~openssl data) ;
+            ("ED25519 sign and verify is bad " ^ string_of_int i, `Quick, raw_ed25519_sig_bad ~openssl data)
           ], succ i) ([], 0) tests)
 
   let ver =
@@ -1935,11 +1978,11 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
         List.length err = List.length err' &&
         List.for_all2 e_eq err err' &&
         Digest_map.equal id_equal ids ids'
-  end in
-  (module M: Alcotest.TESTABLE with type t = M.t)
+    end in
+    (module M: Alcotest.TESTABLE with type t = M.t)
 
   let sign_verify_root () =
-    let pub, p = gen_pub () in
+    let pub, p = gen_rsa_pub () in
     let id = "foobar" in
     let dgst = Key.keyid V.raw_digest pub in
     let expr = Expression.Quorum (1, Expression.KS.singleton (Expression.Local id)) in
@@ -1956,7 +1999,7 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
       roles = Root.RM.empty ;
       signatures = M.empty
     } in
-    match PRIV.sign (Root.wire_raw root) "now!" id `RSA_PSS_SHA256 (Obj.magic p) with
+    match PRIV.sign (Root.wire_raw root) "now!" id (Obj.magic p) with
     | Error e -> Alcotest.fail e
     | Ok signature ->
       let raw_root = Root.wire_raw root in
@@ -1973,12 +2016,6 @@ module BasicTests (V : Conex_verify.S) (R : Conex_verify.S_RSA_BACK) = struct
       Alcotest.check ver "verify root fails (wrong key)!"
         (Digest_map.empty, [ `UnknownKey id ])
         (V.verify M.empty wrong_keys (M.add id signature M.empty))
-
-(*    <add signature>
-    <to_wire>
-    <of_wire>
-    <verify>
-      <maybe play a bit with modifyin root and attempt to verify> *)
 
   let sign_tests ~openssl = raw_sigs ~openssl @ [
       "sign and verify root", `Quick, sign_verify_root ;

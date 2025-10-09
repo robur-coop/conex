@@ -5,13 +5,14 @@ open Conex_mc
 
 let ( let* ) = Result.bind
 
-let jump _ id force pub =
+let jump _ id alg force pub =
   Mirage_crypto_rng_unix.use_default () ;
   msg_to_cmdliner (
     let* id = Option.to_result ~none:"need an id" id in
     let fp k =
       let public = PRIV.pub_of_priv k in
-      Logs.app (fun m -> m "key %s created %s keyid %s"
+      Logs.app (fun m -> m "%s key %s created %s keyid %s"
+                   (Key.alg_to_string (PRIV.alg k))
                    (PRIV.id k) (PRIV.created k)
                    (Digest.to_string (Key.keyid V.raw_digest public))) ;
       if pub then
@@ -21,7 +22,7 @@ let jump _ id force pub =
       Ok ()
     in
     let gen_or_err () =
-      let* t = PRIV.generate to_ts `RSA id () in
+      let* t = PRIV.generate to_ts alg id () in
       Logs.app (fun m -> m "generated fresh key") ;
       fp t
     in
@@ -52,7 +53,7 @@ let pub =
 
 let cmd =
   let doc = "key management" in
-  let term = Term.(ret (const jump $ setup_log $ Keys.id $ Keys.force $ pub))
+  let term = Term.(ret (const jump $ setup_log $ Keys.id $ Keys.key_alg $ Keys.force $ pub))
   and info = Cmd.info "conex_key" ~version:"%%VERSION_NUM%%" ~doc
   in
   Cmd.v info term

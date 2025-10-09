@@ -93,6 +93,8 @@ module V = struct
      "OpenSSL 0.9.8zh-freebsd 3 Dec 2015" ; FreeBSD 9.3
      "OpenSSL 0.9.8o 01 Jun 2010" ; debian 6.0.10
      "OpenSSL 0.9.8k" ; reynir
+
+     OpenSSL 3.0.1 (for ED25519)
   *)
 
   let check_version () =
@@ -100,8 +102,13 @@ module V = struct
     let input = Unix.open_process_in cmd in
     let output = input_line input in
     let _ = Unix.close_process_in input in
-    if String.is_prefix ~prefix:"OpenSSL 0." output then
-      Error ("need at least OpenSSL 1.0.0(u?), found: " ^ output)
+    if
+      String.is_prefix ~prefix:"OpenSSL 0." output ||
+      String.is_prefix ~prefix:"OpenSSL 1." output ||
+      String.is_prefix ~prefix:"OpenSSL 2." output ||
+      String.is_prefix ~prefix:"OpenSSL 3.0.0" output
+    then
+      Error ("need at least OpenSSL 3.0.1, found: " ^ output)
     else
       Ok ()
 
@@ -117,6 +124,33 @@ module V = struct
        let* () = Conex_unix_persistency.write_replace (filename ^ ".txt") data in
        let* () = Conex_unix_persistency.write_replace (filename ^ ".sig") signature in
        let cmd = Printf.sprintf "openssl dgst -sha256 -verify %s.key -sigopt rsa_padding_mode:pss -signature %s.sig %s.txt > /dev/null" filename filename filename in
+       let res = if 0 = Sys.command cmd then Ok () else Error "broken" in
+       let _ = Conex_unix_persistency.remove (filename ^ ".txt")
+       and _ = Conex_unix_persistency.remove (filename ^ ".key")
+       and _ = Conex_unix_persistency.remove (filename ^ ".sig")
+       and _ = Conex_unix_persistency.remove filename
+       in
+       res)
+
+  let pem_of_ed25519 k =
+    {|-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA|} ^ k ^ {|
+-----END PUBLIC KEY-----|}
+
+  (* Since openssl 3.0.1 *)
+  let verify_ed25519 ~key ~data ~signature id =
+    let* signature =
+      try Ok (B64.decode signature) with _ -> Error (`InvalidBase64Encoding id)
+    in
+    Result.map_error (function
+        | "broken" -> `InvalidSignature id
+        | _ -> `InvalidPublicKey id)
+      (let filename = Filename.temp_file "conex" "sig" in
+       let key = pem_of_ed25519 key in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".key") key in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".txt") data in
+       let* () = Conex_unix_persistency.write_replace (filename ^ ".sig") signature in
+       let cmd = Printf.sprintf "openssl pkeyutl -verify -pubin -inkey %s.key -rawin -in %s.txt -sigfile %s.sig > /dev/null" filename filename filename in
        let res = if 0 = Sys.command cmd then Ok () else Error "broken" in
        let _ = Conex_unix_persistency.remove (filename ^ ".txt")
        and _ = Conex_unix_persistency.remove (filename ^ ".key")

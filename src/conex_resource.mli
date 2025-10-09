@@ -175,7 +175,10 @@ end
 module Key : sig
 
   (** The sum type of supported asymmetric key algorithms. *)
-  type alg = [ `RSA ]
+  type alg = [ `RSA | `Ed25519 ]
+
+  (** [alg_to_string a] is a string for [alg]. *)
+  val alg_to_string : alg -> string
 
   (** The type of public keys *)
   type t = identifier * timestamp * alg * string
@@ -210,7 +213,7 @@ end
 
 module Signature : sig
   (** The sum type of supported signature algorithms. *)
-  type alg = [ `RSA_PSS_SHA256 ]
+  type alg = [ `RSA_PSS_SHA256 | `Ed25519 ]
 
   (** A signature is a quadruple of timestamp, identifier, algorithm, and
       signature value. *)

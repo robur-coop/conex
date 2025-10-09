@@ -117,9 +117,7 @@ let sign _ dry repodir id no_incr root_file no_opam =
       | false, (false, counter) -> Ok { targets with Targets.counter }
       | false, (true, _) -> Error "couldn't increment counter"
     in
-    let* signature =
-      PRIV.sign (Targets.wire_raw targets') now id' `RSA_PSS_SHA256 priv
-    in
+    let* signature = PRIV.sign (Targets.wire_raw targets') now id' priv in
     let targets'' = Targets.add_signature targets' id' signature in
     IO.write_targets io root targets'')
 

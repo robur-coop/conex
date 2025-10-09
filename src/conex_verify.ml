@@ -6,6 +6,7 @@ type error = [
   | `InvalidBase64Encoding of identifier
   | `InvalidSignature of identifier
   | `InvalidPublicKey of identifier
+  | `BadAlgorithm of string
 ]
 
 let pp_error ppf = function
@@ -13,10 +14,13 @@ let pp_error ppf = function
   | `InvalidBase64Encoding id -> Format.fprintf ppf "signature %a: no valid base64 encoding" pp_id id
   | `InvalidSignature id -> Format.fprintf ppf "invalid signature %a" pp_id id
   | `InvalidPublicKey id -> Format.fprintf ppf "invalid public key %a" pp_id id
+  | `BadAlgorithm msg -> Format.fprintf ppf "bad algorithm %s" msg
 [@@coverage off]
 
-module type S_RSA_BACK = sig
+module type S_BACK = sig
   val verify_rsa_pss : key:string -> data:string -> signature:string -> identifier -> (unit, [> error ]) result
+
+  val verify_ed25519 : key:string -> data:string -> signature:string -> identifier -> (unit, [> error ]) result
 
   val sha256 : string -> string
 end
@@ -31,7 +35,7 @@ module type S = sig
 end
 
 (** Instantiation. *)
-module Make (C : S_RSA_BACK) = struct
+module Make (C : S_BACK) = struct
 
   let raw_digest data = `SHA256, C.sha256 data
 
@@ -42,6 +46,11 @@ module Make (C : S_RSA_BACK) = struct
     | `RSA_PSS_SHA256, (_, _, `RSA, key) ->
       let data = Wire.to_string (to_be_signed data created id alg) in
       C.verify_rsa_pss ~key ~data ~signature id
+    | `Ed25519, (_, _, `Ed25519, key) ->
+      let data = Wire.to_string (to_be_signed data created id alg) in
+      C.verify_ed25519 ~key ~data ~signature id
+    | _ ->
+      Error (`BadAlgorithm "only RSA (RSA_PSS) and ED25519 are supported")
 
   (* using a digest map here to uniquify the public keys! *)
   let verify data keys sigs =

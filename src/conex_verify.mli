@@ -11,6 +11,7 @@ type error = [
   | `InvalidBase64Encoding of identifier
   | `InvalidSignature of identifier
   | `InvalidPublicKey of identifier
+  | `BadAlgorithm of string
 ]
 
 (** [pp_error] is a pretty printer for [verification_error]. *)
@@ -32,7 +33,7 @@ module type S = sig
 end
 
 (** The verification backend, to be implemented by a crypto provider *)
-module type S_RSA_BACK = sig
+module type S_BACK = sig
 
   (** [verify_rsa_pss ~key ~data ~signature] returns [Ok ()] on success,
       otherwise a [verification_error].  Currently, SHA256 is used as hash
@@ -40,10 +41,15 @@ module type S_RSA_BACK = sig
   val verify_rsa_pss : key:string -> data:string -> signature:string -> identifier ->
     (unit, [> error ]) result
 
-  (** [sha356 str] computes the SHA256 digest of [str] and converts it to
+  (** [verify_ed25519 ~key ~data ~signature] returns [Ok ()] on success,
+      otherwise a [verification_error]. *)
+  val verify_ed25519 : key:string -> data:string -> signature:string -> identifier ->
+    (unit, [> error ]) result
+
+  (** [sha256 str] computes the SHA256 digest of [str] and converts it to
       hex. *)
   val sha256 : string -> string
 end
 
 (** Instantiation. *)
-module Make (C : S_RSA_BACK) : S
+module Make (C : S_BACK) : S

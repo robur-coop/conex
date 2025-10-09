@@ -106,9 +106,7 @@ let sign _ dry repodir id no_incr root_file =
       | true, _ -> Ok ts
       | false, (false, counter) -> Ok { ts with Timestamp.counter }
     in
-    let* signature =
-      PRIV.sign (Timestamp.wire_raw ts') now id' `RSA_PSS_SHA256 priv
-    in
+    let* signature = PRIV.sign (Timestamp.wire_raw ts') now id' priv in
     let ts'' = Timestamp.add_signature ts' id' signature in
     IO.write_timestamp io ts'')
 

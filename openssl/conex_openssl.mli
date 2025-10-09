@@ -5,7 +5,7 @@ module V : sig
   (** [check_openssl ()] checks the openssl version (required: >= 1.0.0). *)
   val check_version : unit -> (unit, string) result
 
-  include Conex_verify.S_RSA_BACK
+  include Conex_verify.S_BACK
 end
 
 (** The instantiaed verify module *)

@@ -29,6 +29,9 @@ module type S = sig
   (** [id t] is the identifier of [t]. *)
   val id : t -> identifier
 
+  (** [alg t] is the algorithm of [t]. *)
+  val alg : t -> Conex_resource.Key.alg
+
   (** [generate ~bits alg id ()] generates a fresh private key using [alg]
       for [id], or an error.  Generate also ensures to persistently store the
       generated key if desired. *)
@@ -38,9 +41,9 @@ module type S = sig
   (** [pub_of_priv priv] extracts the public key out of [priv]. *)
   val pub_of_priv : t -> Key.t
 
-  (** [sign wire now id alg priv] signs [wire] with [priv] using [alg], and
+  (** [sign wire now id priv] signs [wire] with [priv] using [alg], and
      evaluates to a [signature], or an error. *)
-  val sign : Wire.t -> timestamp -> identifier -> Signature.alg -> t ->
+  val sign : Wire.t -> timestamp -> identifier -> t ->
     (Signature.t, string) result
 end
 
@@ -58,8 +61,8 @@ module type FS = sig
   val write : Conex_resource.identifier -> string -> (unit, string) result
 end
 
-(** The RSA backend module type *)
-module type S_RSA_BACK = sig
+(** The backend module type *)
+module type S_BACK = sig
 
   (** The abstract type t for keys *)
   type t
@@ -77,18 +80,23 @@ module type S_RSA_BACK = sig
   (** [id t] is the identifier of [t]. *)
   val id : t -> Conex_resource.identifier
 
-  (** [generate_rsa ~bits ()] generates an RSA private key. *)
-  val generate_rsa : ?bits:int -> unit -> string * string
+  (** [alg t] is the algorithm of [t]. *)
+  val alg : t -> Conex_resource.Key.alg
 
-  (** [pub_of_priv_rsa priv] is the PEM-encoded PKCS8 public key of [priv]. *)
-  val pub_of_priv_rsa : t -> string
+  (** [generate ~alg ~bits ()] generates a private key. *)
+  val generate : alg:Conex_resource.Key.alg -> ?bits:int -> unit -> string * string
 
-  (** [sign_pss priv data] is either the raw PSS signature of [data] using
-      [priv] or an error. *)
-  val sign_pss : t -> string -> (string, string) result
+  (** [pub_of_priv priv] is for RSA keys the PEM-encoded PKCS8 public key of [priv],
+      for Ed25519 keys the raw public key. *)
+  val pub_of_priv : t -> string
 
+  (** [sign priv data] is for RSA keys the raw PSS signature of [data] using
+      [priv] or an error, for Ed25519 keys the signature. *)
+  val sign : t -> string -> (string, string) result
+
+  (** [sha256 s] is the SHA256 digest of [s]. *)
   val sha256 : string -> string
 end
 
 (** Given a RSA backend, instantiate the private key module type S. *)
-module Make (C : S_RSA_BACK) (F : FS) : S
+module Make (C : S_BACK) (F : FS) : S

@@ -27,28 +27,30 @@ module V = struct
     guard (Pss_sha256.verify ~key ~signature (`Message data))
       (`InvalidSignature id)
 
-  let to_h i =
-    if i < 10 then
-      char_of_int (0x30 + i)
-    else
-      char_of_int (0x57 + i)
-
-  let to_hex cs =
-    let l = String.length cs in
-    let out = Bytes.create (2 * l) in
-    for i = 0 to pred l do
-      let b = String.get_uint8 cs i in
-      let up = b lsr 4
-      and low = b land 0x0F
+  let verify_ed25519 ~key ~data ~signature id =
+    let ( let* ) = Result.bind in
+    let* signature =
+      Result.map_error (fun _ -> `InvalidBase64Encoding id)
+        (Base64.decode signature)
+    in
+    let* key =
+      let* decoded =
+        Result.map_error
+          (fun (`Msg _msg) -> `InvalidPublicKey id (*(Fmt.str "id %s error %s" id msg)*))
+          (Base64.decode key)
       in
-      Bytes.set out (i * 2) (to_h up);
-      Bytes.set out (i * 2 + 1) (to_h low);
-    done;
-    Bytes.to_string out
+      Result.map_error
+        (fun _e ->
+           `InvalidPublicKey id
+           (*(Fmt.str "id %s error %a" id Mirage_crypto_ec.pp_error e) *))
+        (Mirage_crypto_ec.Ed25519.pub_of_octets decoded)
+    in
+    guard (Mirage_crypto_ec.Ed25519.verify ~key signature ~msg:data)
+      (`InvalidSignature id)
 
   let sha256 data =
     let check = Digestif.SHA256.(to_raw_string (digest_string data)) in
-    to_hex check
+    Ohex.encode check
 end
 
 module NC_V = Conex_verify.Make (V)
@@ -56,37 +58,58 @@ module NC_V = Conex_verify.Make (V)
 module C = struct
 
   type t =
-    Conex_resource.identifier * Conex_resource.timestamp * Mirage_crypto_pk.Rsa.priv
+    Conex_resource.identifier * Conex_resource.timestamp *
+    [ `Rsa of Mirage_crypto_pk.Rsa.priv | `Ed25519 of Mirage_crypto_ec.Ed25519.priv ]
 
   let created (_, ts, _) = ts
 
   let id (id, _, _) = id
 
+  let alg (_, _, k) = match k with `Rsa _ -> `RSA | `Ed25519 _ -> `Ed25519
+
   let decode_priv id ts data =
     Result.fold
       ~ok:(function
-          | `RSA priv -> Ok (id, ts, priv)
-          | _ -> Error "only RSA keys supported")
+          | `RSA priv -> Ok (id, ts, `Rsa priv)
+          | `ED25519 priv -> Ok (id, ts, `Ed25519 priv)
+          | _ -> Error "only RSA and Ed25519 keys supported")
       ~error:(function `Msg e -> Error e)
       (X509.Private_key.decode_pem data)
 
-  let encode_priv priv =
-    X509.Private_key.encode_pem (`RSA priv)
+  let encode_priv p =
+    let k = match p with
+      | `Rsa r -> `RSA r
+      | `Ed25519 k -> `ED25519 k
+    in
+    X509.Private_key.encode_pem k
 
-  let pub_of_priv_rsa_raw key =
-    let pub = Mirage_crypto_pk.Rsa.pub_of_priv key in
-    V.encode_key pub
+  let pub_of_priv_raw = function
+    | `Rsa k -> V.encode_key (Mirage_crypto_pk.Rsa.pub_of_priv k)
+    | `Ed25519 k ->
+      let pub = Mirage_crypto_ec.Ed25519.pub_of_priv k in
+      Base64.encode_string (Mirage_crypto_ec.Ed25519.pub_to_octets pub)
 
-  let generate_rsa ?(bits = 4096) () =
-    let key = Mirage_crypto_pk.Rsa.generate ~bits () in
-    encode_priv key, pub_of_priv_rsa_raw key
+  let generate ~alg ?(bits = 4096) () =
+    let priv =
+      match alg with
+      | `RSA -> `Rsa (Mirage_crypto_pk.Rsa.generate ~bits ())
+      | `Ed25519 -> `Ed25519 (fst (Mirage_crypto_ec.Ed25519.generate ()))
+    in
+    encode_priv priv, pub_of_priv_raw priv
 
-  let bits (_, _, k) = Mirage_crypto_pk.Rsa.priv_bits k
+  let bits (_, _, k) =
+    match k with
+    | `Rsa k -> Mirage_crypto_pk.Rsa.priv_bits k
+    | `Ed25519 _ -> 255
 
-  let pub_of_priv_rsa (_, _, k) = pub_of_priv_rsa_raw k
+  let pub_of_priv (_, _, k) = pub_of_priv_raw k
 
-  let sign_pss (_, _, key) data =
-    let signature = V.Pss_sha256.sign ~key (`Message data) in
+  let sign (_, _, key) data =
+    let signature =
+      match key with
+      | `Rsa key -> V.Pss_sha256.sign ~key (`Message data)
+      | `Ed25519 key -> Mirage_crypto_ec.Ed25519.sign ~key data
+    in
     Ok (Base64.encode_string signature)
 
   let sha256 = V.sha256

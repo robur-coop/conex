@@ -232,9 +232,7 @@ let sign _ dry repodir id no_incr filename =
       | true, _ -> Ok root
       | false, (false, counter) -> Ok { root with Root.counter }
     in
-    let* signature =
-      PRIV.sign (Root.wire_raw root') now id' `RSA_PSS_SHA256 priv
-    in
+    let* signature = PRIV.sign (Root.wire_raw root') now id' priv in
     let root'' = Root.add_signature root' id' signature in
     IO.write_root io root'')
 
