@@ -72,12 +72,14 @@ module String = struct
     let len = stop - start in
     String.sub str start len
 
+  external compare_strings : string -> string -> int -> int = "conex_compare_string" [@@noalloc]
+
   let is_prefix ~prefix str =
     let pl = String.length prefix in
     if String.length str < pl then
       false
     else
-      String.(equal (sub str 0 (length prefix)) prefix)
+      compare_strings str prefix pl = 0
 
   let is_suffix ~suffix str =
     let sl = String.length suffix in

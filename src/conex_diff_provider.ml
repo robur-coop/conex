@@ -8,17 +8,17 @@ let target = function
   | Patch.Edit (_, name)
   | Create name
   | Git_ext (_, name, Rename_only _)
-  | Git_ext (_, name, Create_only) -> Some name
+  | Git_ext (_, name, Create_only) -> name
   | Delete _
-  | Git_ext (_, _, Delete_only) -> None
+  | Git_ext (_, _, Delete_only) -> raise Not_found
 
 let source = function
   | Patch.Edit (old, _)
   | Delete old
   | Git_ext (old, _, Rename_only _)
-  | Git_ext (old, _, Delete_only) -> Some old
+  | Git_ext (old, _, Delete_only) -> old
   | Create _
-  | Git_ext (_, _, Create_only) -> None
+  | Git_ext (_, _, Create_only) -> raise Not_found
 
 module FS = Set.Make(struct
     type t = file_type * string
@@ -29,10 +29,11 @@ module FS = Set.Make(struct
 
 let apply provider (diffs : Patch.t list) =
   let find_diff f path =
+    let path_str = path_to_string path in
     List.find_opt (fun x ->
         match f x.Patch.operation with
-        | None -> false
-        | Some path' -> path_equal (string_to_path_exn path') path)
+        | exception Not_found -> false
+        | path' -> String.equal path_str path')
       diffs
   in
   let read path =
@@ -45,8 +46,8 @@ let apply provider (diffs : Patch.t list) =
         | Some data -> Ok data
       in
       match source diff.operation with
-      | None -> res_patch None
-      | Some x -> match provider.read (string_to_path_exn x) with
+      | exception Not_found -> res_patch None
+      | x -> match provider.read (string_to_path_exn x) with
         | Error x -> Error x
         | Ok data -> res_patch (Some data)
   and file_type path =
@@ -64,6 +65,7 @@ let apply provider (diffs : Patch.t list) =
       Result.fold ~ok:(fun files -> FS.of_list files) ~error:(fun _ -> FS.empty)
         (provider.read_dir path)
     in
+    let path_str = path_to_string path in
     let drop_pre dir path' =
       let rec dropit a b = match a, b with
         | [], [ x ] -> Some (File, x)
@@ -79,16 +81,28 @@ let apply provider (diffs : Patch.t list) =
       List.fold_left (fun acc d ->
           match d.Patch.operation with
           | Patch.Create name | Git_ext (_, name, Create_only) ->
-            opt_add (drop_pre true name) acc
-          | Edit (old, name) ->
-            if String.equal old name then
+            if String.is_prefix ~prefix:path_str name then
               opt_add (drop_pre true name) acc
             else
-              opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
+              acc
+          | Edit (old, name) ->
+            if String.is_prefix ~prefix:path_str old || String.is_prefix ~prefix:path_str name then
+              if String.equal old name then
+                opt_add (drop_pre true name) acc
+              else
+                opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
+            else
+              acc
           | Git_ext (old, name, Rename_only _) ->
-            opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
+            if String.is_prefix ~prefix:path_str name then
+              opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
+            else
+              acc
           | Delete old | Git_ext (old, _, Delete_only) ->
-            opt_rem (drop_pre false old) acc)
+            if String.is_prefix ~prefix:path_str old then
+              opt_rem (drop_pre false old) acc
+            else
+              acc)
         old diffs
     in
     Ok (FS.elements stuff)
