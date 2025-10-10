@@ -72,19 +72,14 @@ module String = struct
     let len = stop - start in
     String.sub str start len
 
-  let is_prefix ~prefix str =
-    let pl = String.length prefix in
-    if String.length str < pl then
-      false
-    else
-      String.(equal (sub str 0 (length prefix)) prefix)
-
-  let is_suffix ~suffix str =
-    let sl = String.length suffix in
-    if String.length str < sl then
-      false
-    else
-      String.(equal (sub str (length str - sl) sl) suffix)
+  let is_prefix ~prefix s =
+    let len_s = String.length s
+    and len_pre = String.length prefix in
+    let rec aux i =
+      if i = len_pre then true
+      else if String.unsafe_get s i <> String.unsafe_get prefix i then false
+      else aux (i + 1)
+    in len_s >= len_pre && aux 0
 
   let lowercase_char = function
     | 'A' .. 'Z' as c -> char_of_int (int_of_char c + 0x20)
