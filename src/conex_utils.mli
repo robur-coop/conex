@@ -120,9 +120,6 @@ module String : sig
 
   (** [equal a b] is [String.equal a b]. *)
   val equal : t -> t -> bool
-
-  (** [get_uint8 str offset] retrieves the byte at [offset] in [str]. *)
-  val get_uint8 : t -> int -> int
 end
 
 (** {1 Unsigned integers} *)
