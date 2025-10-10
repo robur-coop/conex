@@ -3,7 +3,4 @@
   (public_name conex)
   (wrapped false)
   (instrumentation (backend bisect_ppx))
-  (foreign_stubs
-    (language c)
-    (names conex_stubs))
   (libraries opam-file-format patch))

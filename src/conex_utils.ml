@@ -72,14 +72,14 @@ module String = struct
     let len = stop - start in
     String.sub str start len
 
-  external compare_strings : string -> string -> int -> int = "conex_compare_string" [@@noalloc]
-
-  let is_prefix ~prefix str =
-    let pl = String.length prefix in
-    if String.length str < pl then
-      false
-    else
-      compare_strings str prefix pl = 0
+  let is_prefix ~prefix s =
+    let len_s = String.length s
+    and len_pre = String.length prefix in
+    let rec aux i =
+      if i = len_pre then true
+      else if String.unsafe_get s i <> String.unsafe_get prefix i then false
+      else aux (i + 1)
+    in len_s >= len_pre && aux 0
 
   let lowercase_char = function
     | 'A' .. 'Z' as c -> char_of_int (int_of_char c + 0x20)
