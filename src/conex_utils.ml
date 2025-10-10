@@ -127,8 +127,6 @@ module String = struct
     compare (to_lower a) (to_lower b)
 
   let equal = String.equal
-
-  let get_uint8 = String.get_uint8
 end
 
 module Uint = struct
