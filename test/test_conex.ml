@@ -122,9 +122,6 @@ module ExprTests = struct
     Alcotest.check (result expr str_err) "or expression from string, no paren"
       (Ok (Expression.Or (a, b)))
       (Expression.of_wire (wire_s str)) ;
-    (* TODO: bug or feature? | has higher precedence
-       fixed in opam-file-format rc2 since
-       https://github.com/AltGr/opam/commit/c3a78ad962e177e339774e110dc920040b8f3583 *)
     let c = Expression.Quorum (1, Expression.KS.singleton (Expression.Local "c")) in
     let str = "expr: (1 [ a ]) & (1 [ b ]) | (1 [ c ])" in
     Alcotest.check (result expr str_err) "or expression from string, no paren"
@@ -980,9 +977,19 @@ module RootTests = struct
     Alcotest.check (result roo str_err) "good wire with good signature"
       (Ok (root, [])) (Root.of_wire wire)
 
+  let to_string () =
+    let root = { Root.created = "now" ; counter = Uint.zero ; epoch = Uint.zero ;
+                 name = "root" ; datadir = [ "here" ] ; keydir = [ "there" ] ;
+                 keys = M.empty ; roles = Root.RM.empty ; signatures = M.empty ; valid = empty_valid }
+    in
+    let str = "{signatures:[];signed:{counter:0x0;created:3'now;datadir:4'here;epoch:0x0;keydir:5'there;keys:[];name:4'root;roles:{};typ:root;valid:(0[]);version:1}}" in
+    Alcotest.(check string "to_string (to_wire) works as expected" str
+                (Wire.to_string (Root.wire root)))
+
   let tests = [
     "bad of_wire", `Quick, basic_bad_of_wire ;
     "good of_wire", `Quick, basic_good_of_wire ;
+    "to_string", `Quick, to_string ;
   ]
 end
 
