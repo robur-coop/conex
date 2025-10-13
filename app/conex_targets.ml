@@ -99,7 +99,7 @@ let compute _ dry repodir id pkg root_file no_opam strategy =
     let merged_targets =
       match strategy with
       | `Replace_all ->
-        Logs.warn (fun m -> m "replacing %u existing targets by %u computed targets"
+        Logs.info (fun m -> m "replacing %u existing targets by %u computed targets"
                       (List.length t.Targets.targets) (List.length targets));
         targets
       | `Keep_old ->
