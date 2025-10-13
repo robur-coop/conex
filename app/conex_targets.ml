@@ -129,7 +129,7 @@ let compute _ dry repodir id pkg root_file no_opam strategy =
         in
         old_targets' @ targets
       | `Keep_all ->
-        Logs.warn (fun m -> m "adding %u targets to the existing %u targets, now %u"
+        Logs.info (fun m -> m "adding %u targets to the existing %u targets, now %u"
                       (List.length targets) (List.length t.Targets.targets)
                       (List.length targets + List.length t.Targets.targets));
         t.Targets.targets @ targets
