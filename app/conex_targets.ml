@@ -71,7 +71,12 @@ let hash _ repodir id root_file no_opam =
     Logs.app (fun m -> m "hash %a" Digest.pp dgst) ;
     Ok ())
 
-let compute _ dry repodir id pkg root_file no_opam =
+module TM = Map.Make(struct
+    type t = path
+    let compare a b = path_compare a b
+  end)
+
+let compute _ dry repodir id pkg root_file no_opam strategy =
   msg_to_cmdliner (
     let* io = repo ~rw:(not dry) repodir in
     let* root, warn = to_str Conex_io.pp_r_err (IO.read_root io root_file) in
@@ -91,14 +96,45 @@ let compute _ dry repodir id pkg root_file no_opam =
       to_str Conex_io.pp_r_err (IO.read_targets io root (not no_opam) id')
     in
     List.iter (fun msg -> Logs.warn (fun m -> m "%s" msg)) warn ;
-    (* here we need a proper merge strategy:
-       - remove duplicates (same name, size, hash)
-       - remove targets not present on disk
-       - at the same time for threshold signatures there may be the same
-         artifact present with different size & hash, so we can migrate from
-         the old to the new file
-    *)
-    let t' = { t with Targets.targets } in
+    let merged_targets =
+      match strategy with
+      | `Replace_all ->
+        Logs.warn (fun m -> m "replacing %u existing targets by %u computed targets"
+                      (List.length t.Targets.targets) (List.length targets));
+        targets
+      | `Keep_old ->
+        (* deduplicate, remove those not present on disk *)
+        let on_disk =
+          List.fold_left (fun acc target -> TM.add target.Target.filename target acc)
+            TM.empty targets
+        in
+        let old_targets' =
+          List.fold_left (fun acc target ->
+              match TM.find_opt target.Target.filename on_disk with
+              | None ->
+                Logs.info (fun m -> m "dropping target for %a, does not exist on disk"
+                              pp_path target.filename);
+                acc
+              | Some target_on_disk ->
+                if target.size = target_on_disk.size &&
+                   List.for_all2 Digest.equal target.digest target_on_disk.digest
+                then
+                  (* duplicate, skip *)
+                  acc
+                else begin
+                  Logs.info (fun m -> m "add target for %a (now present multiple times)"
+                              pp_path target.filename);
+                  target :: acc
+                end) [] targets
+        in
+        old_targets' @ targets
+      | `Keep_all ->
+        Logs.warn (fun m -> m "adding %u targets to the existing %u targets, now %u"
+                      (List.length targets) (List.length t.Targets.targets)
+                      (List.length targets + List.length t.Targets.targets));
+        t.Targets.targets @ targets
+    in
+    let t' = { t with Targets.targets = merged_targets } in
     IO.write_targets io root t')
 
 let sign _ dry repodir id no_incr root_file no_opam =
@@ -205,6 +241,10 @@ let hash_cmd =
   in
   Cmd.v info term
 
+let strategy =
+    let doc = "Merge strategy: replace existing targets (replace-all); keep existing targets (unless not existant on disk) and deduplicate (keep-old); or keep everything (keep-all)." in
+    Arg.(value & opt (enum [ ("replace-all", `Replace_all) ; ("keep-old", `Keep_old) ; ("keep-all", `Keep_all) ]) `Keep_old & info ["strategy"] ~docs ~doc)
+
 let compute_cmd =
   let doc = "compute checksums for targets file" in
   let man =
@@ -212,7 +252,7 @@ let compute_cmd =
      `P "Computes checksums."]
   in
   let term =
-    Term.(ret Conex_opts.(const compute $ setup_log $ Keys.dry $ Keys.repo $ Keys.id $ Keys.package $ Keys.root $ Keys.no_opam))
+    Term.(ret Conex_opts.(const compute $ setup_log $ Keys.dry $ Keys.repo $ Keys.id $ Keys.package $ Keys.root $ Keys.no_opam $ strategy))
   and info = Cmd.info "compute" ~doc ~man
   in
   Cmd.v info term

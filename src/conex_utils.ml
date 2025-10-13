@@ -235,6 +235,21 @@ let path_equal a b =
   let str_eq a b = String.compare a b = 0 in
   try List.for_all2 str_eq a b with _ -> false
 
+let path_compare a b =
+  let str_cmp a b = String.compare a b in
+  let rec go a b = match a, b with
+    | hd::tl, hd'::tl' ->
+      let r = str_cmp hd hd' in
+      if r = 0 then
+        go tl tl'
+      else
+        r
+    | [], [] -> 0
+    | _, [] -> 1
+    | [], _ -> -1
+  in
+  go a b
+
 let rec subpath ~parent b =
   let str_eq a b = String.compare a b = 0 in
   match parent, b with
