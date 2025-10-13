@@ -127,7 +127,7 @@ let compute _ dry repodir id pkg root_file no_opam strategy =
                   target :: acc
                 end) [] targets
         in
-        old_targets' @ targets
+        List.rev old_targets' @ targets
       | `Keep_all ->
         Logs.info (fun m -> m "adding %u targets to the existing %u targets, now %u"
                       (List.length targets) (List.length t.Targets.targets)
