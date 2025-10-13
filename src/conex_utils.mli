@@ -232,6 +232,9 @@ val string_to_path_exn : string -> path
 (** [path_equal p p'] is [true] if [p] and [p'] are equal. *)
 val path_equal : path -> path -> bool
 
+(** [path_compare p p'] is an order on path. *)
+val path_compare : path -> path -> int
+
 (** [subpath ~parent p] is [true] if [p] starts with all segments of [parent]. *)
 val subpath : parent:path -> path -> bool
 
