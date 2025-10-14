@@ -170,7 +170,7 @@ let diff_test_create () =
   let p = Mem.mem_provider () in
   let diff = {|
 --- /dev/null
-+++ packages/foo
++++ b/packages/foo
 @@ -0,0 +1 @@
 +bar
 |}
@@ -193,7 +193,7 @@ let diff_test_remove () =
    | Ok () -> ()
    | Error _ -> assert false) ;
   let diff = {|
---- packages/foo
+--- a/packages/foo
 +++ /dev/null
 @@ -1 +0,0 @@
 -bar
@@ -215,8 +215,8 @@ let diff_test_rename () =
    | Ok () -> ()
    | Error _ -> assert false) ;
   let diff = {|
---- packages/foo
-+++ packages/bar
+--- a/packages/foo
++++ b/packages/bar
 @@ -1 +1 @@
 -bar
 +foobar
@@ -244,8 +244,8 @@ let diff_test_edit () =
    | Ok () -> ()
    | Error _ -> assert false) ;
   let diff = {|
---- packages/foo
-+++ packages/foo
+--- a/packages/foo
++++ b/packages/foo
 @@ -1 +1 @@
 -bar
 +foobar
@@ -285,21 +285,21 @@ let diff_test_complex () =
     (Ok [ File, "staying" ; File, "foobarbaz" ; File, "foobar" ; File, "foo" ])
     (p.read_dir ["packages"]);
   let diff = {|
---- packages/foo
-+++ packages/bar
+--- a/packages/foo
++++ b/packages/bar
 @@ -1 +1 @@
 -bar
 +foobar
---- packages/foobar
+--- a/packages/foobar
 +++ /dev/null
 @@ -1 +0,0 @@
 -baz
 --- /dev/null
-+++ packages/baz
++++ b/packages/baz
 @@ -0,0 +1 @@
 +baz
---- packages/foobarbaz
-+++ packages/foobarbaz
+--- a/packages/foobarbaz
++++ b/packages/foobarbaz
 @@ -1 +1 @@
 -foobarbaz
 +foobar

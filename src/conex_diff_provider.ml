@@ -118,8 +118,7 @@ let apply provider (diffs : Patch.t list) =
   { basedir ; description ; file_type ; read ; write ; read_dir ; exists }
 
 let apply_diff io data =
-  (* TODO check whether ~p:0 is the right thing for opam *)
-  let diffs = Patch.parse ~p:0 data in
+  let diffs = Patch.parse ~p:1 data in
   apply io diffs, diffs
 
 (* TODO which equality to use here? is = ok? *)
