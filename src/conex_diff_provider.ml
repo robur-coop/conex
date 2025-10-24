@@ -39,10 +39,10 @@ let apply provider (diffs : Patch.t list) =
   let read path =
     match find_diff target path, find_diff source path with
     | None, None -> provider.read path
-    | None, Some _ -> Error "no data"
+    | None, Some _ -> Error ("no data reading " ^ path_to_string path)
     | Some diff, _ ->
       let res_patch old = match Patch.patch ~cleanly:true old diff with
-        | None -> Error "no data"
+        | None -> Error ("no data res_patch " ^ path_to_string path)
         | Some data -> Ok data
       in
       match source diff.operation with
@@ -94,7 +94,7 @@ let apply provider (diffs : Patch.t list) =
             else
               acc
           | Git_ext (old, name, Rename_only _) ->
-            if String.is_prefix ~prefix:path_str name then
+            if String.is_prefix ~prefix:path_str name || String.is_prefix ~prefix:path_str old then
               opt_rem (drop_pre false old) (opt_add (drop_pre true name) acc)
             else
               acc
