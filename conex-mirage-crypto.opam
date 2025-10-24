@@ -38,3 +38,4 @@ are present.
 
 This package uses the crypto primitives provided by mirage-crypto.
 """
+x-maintenance-intent: [ "(latest)" ]

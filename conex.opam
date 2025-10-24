@@ -24,5 +24,6 @@ Conex is a system based on [TUF](https://theupdateframework.github.io/) to
 establish trust in community repositories. Since opam2, the required hooks
 are present.
 
-This package uses openssl for the required crypto primitives (>=1.0.0u for RSA-PSS).
+This package uses openssl for the required crypto primitives (>=3.0.0 for Ed25519).
 """
+x-maintenance-intent: [ "(latest)" ]
