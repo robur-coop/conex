@@ -1,3 +1,17 @@
+## v1.0.0 (2025-10-24)
+
+* Various bugfixes and quality of life improvements of the tooling
+* Various fixes to the conex diff provider (#47 #49)
+* Improve performance (allocate less, #43)
+* Use the now separate patch library (#41)
+* Avoid Format.str_formatter due to it being racy (#39 #40)
+* FEATURE: Support Ed25519 signatures (#35)
+* Speedup conex-verify-openssl by using sha instead of openssl dgst (#36)
+* Adapt to newer dependencies (remove rresult, mirage-crypto-rng 1.2.0,
+  cmdliner 2.0.0 compatibility)
+* Add snapshot and timestamp support, and applications for these (#22, #26)
+* Require OCaml 4.08
+
 ## v0.11.1 (2020-03-15)
 
 * Use mirage-crypto instead of nocrypto
