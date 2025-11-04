@@ -98,5 +98,5 @@ module type S_BACK = sig
   val sha256 : string -> string
 end
 
-(** Given a RSA backend, instantiate the private key module type S. *)
+(** Given a backend and a file system, instantiate the private key module type S. *)
 module Make (C : S_BACK) (F : FS) : S
