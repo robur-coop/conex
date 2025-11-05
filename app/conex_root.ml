@@ -91,6 +91,7 @@ let add_key _ dry repodir quorum id alg data filename =
       let valid = match root.valid with
         | Expression.Quorum (q, ks) ->
           let q = Option.value ~default:q quorum in
+          let q = if q = 0 then 1 else q in
           let keys = Expression.(KS.add (Local id) ks) in
           Expression.Quorum (q, keys)
         | a -> a
