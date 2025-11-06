@@ -8,6 +8,8 @@ The [TUF spec](https://github.com/theupdateframework/specification/blob/master/t
 
 ## Project history
 
+November 2025: it is live [blog post](https://hannes.robur.coop/Posts/ConexRunning), [discuss announcement](https://discuss.ocaml.org/t/opam-repository-signed-conex-is-in-beta-now/).
+
 Spring 2017, together with Justin Cappos [TAP 8](https://github.com/theupdateframework/taps/blob/master/tap8.md) was designed which extends TUF with key rotation and explicit self-revocation.
 
 Early 2017, a [blog post](https://hannes.robur.coop/Posts/Conex) introducing a prototype was published.
