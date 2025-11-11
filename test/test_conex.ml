@@ -982,7 +982,7 @@ module RootTests = struct
                  name = "root" ; datadir = [ "here" ] ; keydir = [ "there" ] ;
                  keys = M.empty ; roles = Root.RM.empty ; signatures = M.empty ; valid = empty_valid }
     in
-    let str = "{signatures:[];signed:{counter:0x0;created:3'now;datadir:4'here;epoch:0x0;keydir:5'there;keys:[];name:4'root;roles:{};typ:root;valid:(0[]);version:1}}" in
+    let str = "{signatures:[];signed:{counter:0x0;created:3'now;datadir:4'here;epoch:0x0;keydir:5'there;keys:[];name:4'root;roles:{};typ:root;valid:(0 []);version:1}}" in
     Alcotest.(check string "to_string (to_wire) works as expected" str
                 (Wire.to_string (Root.wire root)))
 

@@ -48,7 +48,7 @@ module Wire = struct
         List.map (fun (k, v) -> k ^ ":" ^ s_to_string v) sorted
       in
       "{" ^ String.concat ";" strs ^ "}"
-    | Pair (i, s) -> "(" ^ s_to_string i ^ s_to_string s ^ ")"
+    | Pair (i, s) -> "(" ^ s_to_string i ^ " " ^ s_to_string s ^ ")"
     | And (a, b) -> "(" ^ s_to_string a ^ "&&" ^ s_to_string b ^ ")"
     | Or (a, b) -> "(" ^ s_to_string a ^ "||" ^ s_to_string b ^ ")"
 
