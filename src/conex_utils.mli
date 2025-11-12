@@ -163,6 +163,8 @@ module Uint : sig
   (** [of_int_exn i] is [Int64.of_int i] if [i >= 0].
       @raise [Invalid_argument] on failure. *)
   val of_int_exn : int -> t
+
+  val of_int64 : int64 -> t
 end
 
 (** [Uint_map] is a [Map] which keys are Uint.t. *)

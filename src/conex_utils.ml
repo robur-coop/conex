@@ -163,6 +163,8 @@ module Uint = struct
 
   let of_int i = try Some (of_int_exn i) with Failure _ -> None
 
+  let of_int64 i = i
+
 end
 
 module Uint_map = struct

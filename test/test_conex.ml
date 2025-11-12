@@ -14,6 +14,88 @@ let wire_s str =
   | Ok a -> a
   | Error e -> Alcotest.fail e
 
+module WireTests = struct
+  let rec pp_s ppf = function
+    | Wire.Map m ->
+      Fmt.pf ppf "Map %a" (M.pp pp_s) m
+    | List xs ->
+      Fmt.pf ppf "List %a" (Fmt.Dump.list pp_s) xs
+    | Identifier i -> Fmt.pf ppf "Identifier %S" i
+    | Data d -> Fmt.pf ppf "Data %S" d
+    | Bigint n -> Fmt.pf ppf "Bigint %a" Uint.pp n
+    | Smallint n -> Fmt.pf ppf "Smallint %d" n
+    | Pair (a, b) -> Fmt.pf ppf "Pair (%a, %a)" pp_s a pp_s b
+    | And (a, b) -> Fmt.pf ppf "And (%a, %a)" pp_s a pp_s b
+    | Or (a, b) -> Fmt.pf ppf "Or (%a, %a)" pp_s a pp_s b
+
+  let pp = M.pp pp_s
+
+  let rec equal_s a b =
+    match a, b with
+    | Wire.Map a, Wire.Map b -> M.equal equal_s a b
+    | List a, List b -> List.equal equal_s a b
+    | Identifier a, Identifier b -> id_equal a b
+    | Data a, Data b -> String.equal a b
+    | Bigint a, Bigint b -> Uint.compare a b = 0
+    | Smallint a, Smallint b -> Int.equal a b
+    | Pair (a1, a2), Pair (b1, b2)
+    | And (a1, a2), And (b1, b2)
+    | Or (a1, a2), Or (b1, b2) ->
+      equal_s a1 b1 && equal_s a2 b2
+    | _ -> false
+
+  let equal = M.equal equal_s
+
+  let s_gen : Wire.s QCheck.Gen.sized =
+    let open QCheck.Gen in
+    let identifier = map (fun s -> Wire.Identifier s) string in
+    let data = map (fun s -> Wire.Data s) string in
+    let bigint = map (fun n -> Wire.Bigint (Uint.of_int64 n)) int64 in
+    let smallint = map (fun n -> Wire.Smallint n) int in
+    let terminal =
+      oneof [
+        identifier;
+        data;
+        bigint;
+        smallint;
+      ]
+    in
+    let nonterminal s n =
+      oneof [
+        map (fun xs -> Wire.Map (M.of_list xs)) (list_size (int_range 0 3) (pair string (s (n/3))));
+        map (fun xs -> Wire.List xs) (list_size (int_range 0 3) (s (n/3)));
+        map2 (fun a b -> Wire.Pair (a, b)) (s (n/2)) (s (n/2));
+        map2 (fun a b -> Wire.And (a, b)) (s (n/2)) (s (n/2));
+        map2 (fun a b -> Wire.Or (a, b)) (s (n/2)) (s (n/2));
+      ]
+    in
+    fix
+      (fun self n -> match n with
+         | 0 -> terminal
+         | n ->
+           frequency [
+             1, terminal;
+             2, nonterminal self n
+           ])
+
+  let wire_gen =
+    let open QCheck.Gen in
+    sized (fun n ->
+        map M.of_list
+          (list_size (int_range 0 4) (pair string (s_gen (n/2)))))
+
+  let wire =
+    QCheck.make wire_gen ~print:(Fmt.to_to_string pp)
+
+  let tests = [
+    QCheck_alcotest.to_alcotest @@
+    QCheck.Test.make ~count:1000
+      ~name:"qcheck Wire.to_string bijective"
+      QCheck.(pair wire wire)
+      (fun (w, w') -> equal w w' = String.equal (Wire.to_string w) (Wire.to_string w'))
+  ]
+end
+
 module ExprTests = struct
 
   let expr =
@@ -982,7 +1064,7 @@ module RootTests = struct
                  name = "root" ; datadir = [ "here" ] ; keydir = [ "there" ] ;
                  keys = M.empty ; roles = Root.RM.empty ; signatures = M.empty ; valid = empty_valid }
     in
-    let str = "{signatures:[];signed:{counter:0x0;created:3'now;datadir:4'here;epoch:0x0;keydir:5'there;keys:[];name:4'root;roles:{};typ:root;valid:(0[]);version:1}}" in
+    let str = "{signatures:[];signed:{counter:0x0;created:3'now;datadir:4'here;epoch:0x0;keydir:5'there;keys:[];name:4'root;roles:{};typ:root;valid:(0 []);version:1}}" in
     Alcotest.(check string "to_string (to_wire) works as expected" str
                 (Wire.to_string (Root.wire root)))
 
@@ -2034,7 +2116,8 @@ end
 module MC = BasicTests (Conex_mirage_crypto.NC_V) (Conex_mirage_crypto.V)
 module OC = BasicTests (Conex_openssl.O_V) (Conex_openssl.V)
 
-let tests = ("Expressions", ExprTests.tests) ::
+let tests = ("Wire", WireTests.tests) ::
+            ("Expressions", ExprTests.tests) ::
             ("Keys", KeyTests.tests) ::
             ("Signatures", SigTests.tests) ::
             ("Digests", DigestTests.tests) ::
