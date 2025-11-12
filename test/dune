@@ -1,4 +1,4 @@
 (test
   (name tests)
   (package conex-mirage-crypto)
-  (libraries conex conex-mirage-crypto conex.openssl alcotest mirage-crypto-rng.unix))
+  (libraries conex conex-mirage-crypto conex.openssl alcotest mirage-crypto-rng.unix qcheck qcheck-alcotest))
